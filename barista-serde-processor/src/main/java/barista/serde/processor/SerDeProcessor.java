@@ -3,14 +3,21 @@ package barista.serde.processor;
 import barista.serde.annotations.SerDe;
 import barista.serde.processor.JsonSerializerGenerator.JsonField;
 import com.google.auto.service.AutoService;
+import com.google.googlejavaformat.java.Formatter;
+import com.google.googlejavaformat.java.JavaFormatterOptions;
+import com.google.googlejavaformat.java.JavaFormatterOptions.Style;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.TypeSpec;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.Filer;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
@@ -20,22 +27,24 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.RecordComponentElement;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
+import javax.tools.JavaFileObject;
 
 @AutoService(Processor.class)
 @SupportedAnnotationTypes({"barista.serde.annotations.SerDe.Json"})
 @SupportedSourceVersion(SourceVersion.RELEASE_16)
 public final class SerDeProcessor extends AbstractProcessor {
-    private final Set<JavaFile> newFiles = new LinkedHashSet<>();
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         try {
-            if (roundEnv.processingOver()) {
-                for (JavaFile jf : newFiles) {
-                    jf.writeTo(processingEnv.getFiler());
+            if (!roundEnv.processingOver()) {
+                Set<JavaFile> filesFromRound = processImpl(annotations, roundEnv);
+                for (JavaFile jf : filesFromRound) {
+                    String output =
+                            new Formatter(JavaFormatterOptions.builder().style(Style.AOSP).build())
+                                    .formatSourceAndFixImports(jf.toString());
+                    writeTo(jf.packageName, jf.typeSpec, output, processingEnv.getFiler());
                 }
-            } else {
-                processImpl(annotations, roundEnv);
             }
         } catch (Exception e) {
             StringWriter sw = new StringWriter();
@@ -45,7 +54,28 @@ public final class SerDeProcessor extends AbstractProcessor {
         return false;
     }
 
-    public void processImpl(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+    // Copied from JavaFile
+    public void writeTo(String packageName, TypeSpec typeSpec, String formattedSource, Filer filer)
+            throws IOException {
+        String fileName = packageName.isEmpty() ? typeSpec.name : packageName + "." + typeSpec.name;
+        List<Element> originatingElements = typeSpec.originatingElements;
+        JavaFileObject filerSourceFile =
+                filer.createSourceFile(fileName, originatingElements.toArray(new Element[0]));
+        try (Writer writer = filerSourceFile.openWriter()) {
+            writer.write(formattedSource);
+        } catch (Exception e) {
+            try {
+                filerSourceFile.delete();
+            } catch (Exception ignored) {
+            }
+            throw e;
+        }
+    }
+
+    public Set<JavaFile> processImpl(
+            Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        Set<JavaFile> filesFromRound = new LinkedHashSet<>();
+
         for (Element element : roundEnv.getElementsAnnotatedWith(SerDe.Json.class)) {
             if (!element.getKind().isClass()) {
                 error("SerDe.Json is only applicable for classes", element);
@@ -59,7 +89,6 @@ public final class SerDeProcessor extends AbstractProcessor {
                 error(
                         "SerDe.Json presently only generates serializers for record classes",
                         element);
-                continue;
             } else {
                 List<JsonField> fields =
                         recordComponents.stream()
@@ -69,9 +98,11 @@ public final class SerDeProcessor extends AbstractProcessor {
                                                         rce.getSimpleName().toString(),
                                                         ClassName.get(rce.asType())))
                                 .toList();
-                newFiles.add(JsonSerializerGenerator.generate(ClassName.get(classElement), fields));
+                filesFromRound.add(
+                        JsonSerializerGenerator.generate(ClassName.get(classElement), fields));
             }
         }
+        return filesFromRound;
     }
 
     private void error(String message, Element element) {

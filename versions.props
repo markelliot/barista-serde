@@ -1,5 +1,6 @@
 com.google.auto.service:auto-service = 1.0-rc4
 com.google.errorprone:error_prone_core = 2.7.1
+com.google.googlejavaformat:google-java-format = 1.10.0
 com.jakewharton.nopen:* = 1.0.1
 com.squareup:javapoet = 1.13.0
 org.assertj:assertj-core = 3.12.2
