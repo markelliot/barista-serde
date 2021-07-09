@@ -20,7 +20,7 @@ task("printVersion") {
 }
 
 allprojects {
-    group = "io.allezgo.service"
+    group = "io.github.markelliot.barista-serde"
     version = rootProject.version
 }
 
