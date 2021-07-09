@@ -6,6 +6,7 @@ com.google.errorprone:error_prone_annotations:2.0.18 (1 constraints: 4d0a33bf)
 com.google.guava:guava:23.5-jre (2 constraints: d01c7bdf)
 com.google.j2objc:j2objc-annotations:1.1 (1 constraints: b609eba0)
 com.jakewharton.nopen:nopen-annotations:1.0.1 (1 constraints: 0405f135)
+com.squareup:javapoet:1.13.0 (1 constraints: 3705323b)
 org.checkerframework:checker-qual:2.0.0 (1 constraints: 140ae5b4)
 org.codehaus.mojo:animal-sniffer-annotations:1.14 (1 constraints: ea09d5aa)
 

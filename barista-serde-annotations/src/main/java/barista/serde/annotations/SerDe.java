@@ -1,7 +1,9 @@
 package barista.serde.annotations;
 
-public final class SerDe {
-    private SerDe() {}
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Target;
 
-    public @interface Json {}
+public @interface SerDe {
+    @Target({ElementType.TYPE})
+    @interface Json {}
 }
