@@ -95,9 +95,11 @@ public final class JsonSerializerGenerator {
                         "$T.serialize($L, $N -> $L)",
                         Serializers.class,
                         fieldAccessor,
-                        "v" + roundNumber,
+                        lambdaParam("v", roundNumber),
                         serializerCall(
-                                innerType, CodeBlock.of("$N", "v" + roundNumber), roundNumber + 1));
+                                innerType,
+                                CodeBlock.of("$N", lambdaParam("v", roundNumber)),
+                                roundNumber + 1));
             }
 
             if (isDualParamIntrinsic(rawType)) {
@@ -107,17 +109,28 @@ public final class JsonSerializerGenerator {
                         "$T.serialize($L, $N -> $L, $N -> $L)",
                         Serializers.class,
                         fieldAccessor,
-                        "k" + roundNumber,
+                        lambdaParam("k", roundNumber),
                         serializerCall(
-                                keyType, CodeBlock.of("$N", "k" + roundNumber), roundNumber + 1),
-                        "v" + roundNumber,
+                                keyType,
+                                CodeBlock.of("$N", lambdaParam("k", roundNumber)),
+                                roundNumber + 1),
+                        lambdaParam("v", roundNumber),
                         serializerCall(
-                                valueType, CodeBlock.of("$N", "v" + roundNumber), roundNumber + 1));
+                                valueType,
+                                CodeBlock.of("$N", lambdaParam("v", roundNumber)),
+                                roundNumber + 1));
             }
         }
 
         // is either not an intrinsic or at least not a supported intrinsic
         return useGeneratedSerializer(type, fieldAccessor);
+    }
+
+    private static String lambdaParam(String paramName, int roundNumber) {
+        if (roundNumber == 0) {
+            return paramName;
+        }
+        return paramName + roundNumber;
     }
 
     private static CodeBlock useGeneratedSerializer(TypeName type, CodeBlock fieldAccessor) {
