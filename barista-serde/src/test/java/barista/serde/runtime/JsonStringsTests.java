@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 final class JsonStringsTests {
     @Test
-    public void testUnescapeString() {
+    public void testUnescape() {
         assertThat(JsonStrings.unescape("")).isEqualTo("");
         assertThat(JsonStrings.unescape("test")).isEqualTo("test");
         assertThat(JsonStrings.unescape("\\\"")).isEqualTo("\"");
@@ -19,6 +19,11 @@ final class JsonStringsTests {
         assertThat(JsonStrings.unescape("\\t")).isEqualTo("\t");
         assertThat(JsonStrings.unescape("\\u0000")).isEqualTo("\0");
         assertThat(JsonStrings.unescape("\\u0001")).isEqualTo("\1");
+    }
+
+    @Test
+    public void testUnescape_invalidEscapeSeq() {
+        assertThat(JsonStrings.unescape("\\k")).isEqualTo("\\k");
     }
 
     @Test

@@ -46,6 +46,12 @@ public final class JsonStrings {
                                                         16)));
                         i += 5;
                     }
+                    default -> {
+                        // if we get here the escaped character wasn't a valid escape
+                        // TODO(markelliot): we should log something here
+                        sb.append(value, read, i + 1);
+                        i += 1;
+                    }
                 }
                 read = i;
             }
