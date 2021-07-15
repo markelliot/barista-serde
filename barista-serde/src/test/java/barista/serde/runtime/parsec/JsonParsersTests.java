@@ -2,11 +2,15 @@ package barista.serde.runtime.parsec;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableMap;
 import io.github.markelliot.result.Result;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 
 final class JsonParsersTests {
@@ -187,9 +191,9 @@ final class JsonParsersTests {
             [
             """,
                 """
-            Parse error at line 1, column 1: Reached end of stream looking for end of collection:
+            Parse error at line 1, column 2: Expected to find ']':
             [
-            ^^
+             ^
             """);
 
         assertError(
@@ -209,9 +213,9 @@ final class JsonParsersTests {
             ["a"
             """,
                 """
-            Parse error at line 1, column 1: Reached end of stream looking for end of collection:
+            Parse error at line 1, column 5: Expected to find ']':
             ["a"
-            ^--^
+                ^
             """);
 
         assertError(
@@ -242,9 +246,9 @@ final class JsonParsersTests {
             ["a", "b"
             """,
                 """
-            Parse error at line 1, column 1: Reached end of stream looking for end of collection:
+            Parse error at line 1, column 10: Expected to find ']':
             ["a", "b"
-            ^-------^
+                     ^
             """);
     }
 
@@ -262,6 +266,115 @@ final class JsonParsersTests {
             """))
                                 .orElseThrow())
                 .containsExactly("a", "b", "c");
+    }
+
+    @Test
+    void testMap() {
+        Parser<Map<String, String>> basicMap =
+                JsonParsers.map(
+                        Function.identity(), JsonParsers.quotedString(), LinkedHashMap::new);
+
+        assertThat(basicMap.parse(ParseState.of("{}")).orElseThrow(ParseError::toException))
+                .containsExactlyEntriesOf(ImmutableMap.of());
+
+        assertThat(basicMap.parse(ParseState.of("{ }")).orElseThrow(ParseError::toException))
+                .containsExactlyEntriesOf(ImmutableMap.of());
+
+        assertThat(
+                        basicMap.parse(
+                                        ParseState.of(
+                                                """
+            { "a" : "A", "b":"B" ,"c": "C"}
+            """))
+                                .orElseThrow(ParseError::toException))
+                .containsExactlyEntriesOf(ImmutableMap.of("a", "A", "b", "B", "c", "C"));
+    }
+
+    @Test
+    void testMap_errors() {
+        Parser<Map<String, String>> parser =
+                JsonParsers.map(
+                        Function.identity(), JsonParsers.quotedString(), LinkedHashMap::new);
+        assertError(
+                parser,
+                "{",
+                """
+                Parse error at line 1, column 1: Expected to find '}':
+                {
+                ^^
+                """);
+        assertError(
+                parser,
+                "",
+                """
+                Parse error at line 1, column 1: Expected to find '{':
+
+                ^
+                """);
+        assertError(
+                parser,
+                "{a",
+                """
+                Parse error at line 1, column 2: Expected a quoted string and did not find a quote:
+                {a
+                 ^
+                """);
+        assertError(
+                parser,
+                "{\"a",
+                """
+                Parse error at line 1, column 3: Reached end of stream looking for terminal quote:
+                {"a
+                  ^^
+                """);
+        assertError(
+                parser,
+                "{\"a\"",
+                """
+                Parse error at line 1, column 4: Expected a quoted string and did not find a quote:
+                {"a"
+                   ^^
+                """);
+        assertError(
+                parser,
+                "{\"a\":",
+                """
+                Parse error at line 1, column 5: Expected a quoted string and did not find a quote:
+                {"a":
+                    ^^
+                """);
+        assertError(
+                parser,
+                "{\"a\":\"",
+                """
+                Parse error at line 1, column 6: Reached end of stream looking for terminal quote:
+                {"a":"
+                     ^^
+                """);
+        assertError(
+                parser,
+                "{\"a\":\"\"",
+                """
+                Parse error at line 1, column 7: Expected to find '}':
+                {"a":""
+                      ^^
+                """);
+        assertError(
+                parser,
+                "{\"a\":\"\",",
+                """
+                Parse error at line 1, column 8: Expected to find '}':
+                {"a":"",
+                       ^^
+                """);
+        assertError(
+                parser,
+                "{\"a\":\"\",}",
+                """
+                Parse error at line 1, column 9: Expected a quoted string and did not find a quote:
+                {"a":"",}
+                        ^
+                """);
     }
 
     private static void assertError(Parser<?> parser, String input, String error) {

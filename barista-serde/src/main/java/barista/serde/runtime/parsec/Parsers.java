@@ -26,13 +26,15 @@ public final class Parsers {
         };
     }
 
-    public static Parser<Void> whitespace() {
+    /** Returns a parser that consumes any whitespace characters. */
+    public static Parser<Empty> whitespace() {
         return state -> {
             // throw away whitespace characters
+            // we skip the isEndOfStream check because the EOS marker is not whitespace
             while (Character.isWhitespace(state.current())) {
                 state.next();
             }
-            return null;
+            return Result.ok(Empty.INSTANCE);
         };
     }
 
@@ -43,7 +45,7 @@ public final class Parsers {
                 if (state.current() != expectation.charAt(i)) {
                     return Result.error(pos.error("Expected to find '" + expectation + "'"));
                 }
-                if (state.current() == -1) {
+                if (state.isEndOfStream()) {
                     return Result.error(pos.error("Unexpectedly reached end of stream."));
                 }
                 state.next();
@@ -53,39 +55,9 @@ public final class Parsers {
     }
 
     public static <T> Parser<T> between(Parser<?> start, Parser<T> parser, Parser<?> end) {
-        return state -> {
-            Result<?, ParseError> startResult = start.parse(state);
-            if (startResult.isError()) {
-                return Result.error(startResult.error().get());
-            }
-
-            Result<T, ParseError> result = parser.parse(state);
-
-            Result<?, ParseError> endResult = end.parse(state);
-            if (endResult.isError()) {
-                return Result.error(endResult.error().get());
-            }
-
-            return result;
-        };
-    }
-
-    public static Parser<String> match(char character) {
-        return state -> {
-            int current = state.current();
-            if (current == -1) {
-                return Result.error(
-                        state.mark()
-                                .error(
-                                        "Reached end of stream while looking for '"
-                                                + character
-                                                + "'"));
-            }
-            if (current != character) {
-                return Result.error(state.mark().error("Expected '" + character + "'"));
-            }
-
-            return Result.ok(Character.toString(character));
-        };
+        return state ->
+                start.parse(state)
+                        .flatMapResult(ignored -> parser.parse(state))
+                        .flatMapResult(result -> end.parse(state).mapResult(ignored -> result));
     }
 }

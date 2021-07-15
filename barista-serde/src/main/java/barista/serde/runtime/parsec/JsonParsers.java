@@ -4,6 +4,7 @@ import barista.serde.runtime.JsonStrings;
 import io.github.markelliot.result.Result;
 import java.util.Collection;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class JsonParsers {
@@ -28,11 +29,11 @@ public final class JsonParsers {
 
             ParseState.Mark start = state.mark();
             int last = -1;
-            while (current != -1 && !(current == '"' && last != '\\')) {
+            while (current != ParseState.EOS && !(current == '"' && last != '\\')) {
                 last = current;
                 current = state.next();
             }
-            if (state.current() == -1) {
+            if (state.isEndOfStream()) {
                 return Result.error(
                         start.error("Reached end of stream looking for terminal quote"));
             }
@@ -99,39 +100,76 @@ public final class JsonParsers {
 
     public static <T, C extends Collection<T>> Parser<C> collection(
             Parser<T> itemParser, Supplier<C> collectionFactory) {
-        Parser<T> liberalItemParser = Parsers.whitespace(itemParser);
+        return Parsers.between(
+                Parsers.expect("["),
+                Parsers.whitespace(collectionInternal(itemParser, collectionFactory)),
+                Parsers.whitespace(Parsers.expect("]")));
+    }
+
+    private static <T, C extends Collection<T>> Parser<C> collectionInternal(
+            Parser<T> itemParser, Supplier<C> collectionFactory) {
         return state -> {
             C collection = collectionFactory.get();
-
-            if (state.current() != '[') {
-                return Result.error(state.mark().error("Expected to find start of a collection"));
-            }
-            ParseState.Mark collectionStart = state.mark();
-
-            state.next();
-            // consume whitespace
-            Parsers.whitespace().parse(state);
-
-            while (state.current() != -1 && state.current() != ']') {
-                Result<T, ParseError> item = liberalItemParser.parse(state);
+            while (!state.isEndOfStream()) {
+                Parsers.whitespace().parse(state);
+                Result<T, ParseError> item = itemParser.parse(state);
                 if (item.isError()) {
-                    return Result.error(item.error().get());
+                    return item.coerce();
                 }
-                collection.add(item.result().get());
+                item.mapResult(collection::add);
 
                 // consume trailing whitespace
                 Parsers.whitespace().parse(state);
                 if (state.current() == ',') {
-                    state.next();
+                    state.next(); // consume ','
+                } else {
+                    break;
                 }
             }
-            if (state.current() == -1) {
-                return Result.error(
-                        collectionStart.error(
-                                "Reached end of stream looking for end of collection"));
-            }
-            state.next(); // consume list end marker
             return Result.ok(collection);
+        };
+    }
+
+    public static <K, V, M extends Map<K, V>> Parser<M> map(
+            Function<String, K> keyFn, Parser<V> itemParser, Supplier<M> mapFactory) {
+        return Parsers.between(
+                Parsers.expect("{"),
+                Parsers.whitespace(mapInternal(keyFn, itemParser, mapFactory)),
+                Parsers.whitespace(Parsers.expect("}")));
+    }
+
+    private static <K, V, M extends Map<K, V>> Parser<M> mapInternal(
+            Function<String, K> keyFn, Parser<V> itemParser, Supplier<M> mapFactory) {
+        return state -> {
+            M map = mapFactory.get();
+            while (!state.isEndOfStream()) {
+                Parsers.whitespace().parse(state);
+
+                Result<K, ParseError> key = quotedString().parse(state).mapResult(keyFn);
+                if (key.isError()) {
+                    return key.coerce();
+                }
+
+                Parsers.whitespace().parse(state);
+                Parsers.expect(":").parse(state);
+                Parsers.whitespace().parse(state);
+
+                Result<V, ParseError> item = itemParser.parse(state);
+                if (item.isError()) {
+                    return item.coerce();
+                }
+
+                map.put(key.unwrap(), item.unwrap());
+
+                // consume trailing whitespace
+                Parsers.whitespace().parse(state);
+                if (state.current() == ',') {
+                    state.next(); // consume ','
+                } else {
+                    break;
+                }
+            }
+            return Result.ok(map);
         };
     }
 

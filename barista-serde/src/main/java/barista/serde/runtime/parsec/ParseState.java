@@ -23,6 +23,9 @@ package barista.serde.runtime.parsec;
 
 public final class ParseState {
 
+    /** End of stream sentinel value. */
+    public static final int EOS = -1;
+
     private final CharSequence seq;
     private int index = 0;
 
@@ -36,7 +39,11 @@ public final class ParseState {
 
     /** Returns current character in the stream. */
     public int current() {
-        return index < seq.length() ? seq.charAt(index) : -1;
+        return index < seq.length() ? seq.charAt(index) : EOS;
+    }
+
+    public boolean isEndOfStream() {
+        return index == seq.length();
     }
 
     /**
@@ -78,7 +85,7 @@ public final class ParseState {
                     || markIndex == seq.length()) {
                 markAdjustment = 1;
             }
-            int adjustedMarkIndex = markIndex - markAdjustment;
+            int adjustedMarkIndex = Math.max(markIndex - markAdjustment, 0);
 
             int lineNumber = 1;
             int columnNumber = 1;
