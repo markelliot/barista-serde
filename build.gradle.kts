@@ -30,7 +30,14 @@ allprojects {
 
     // lives in allprojects because of consistent-versions
     repositories {
-        jcenter()
+        maven {
+            url = uri("https://maven.pkg.github.com/markelliot/result")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+        mavenCentral()
     }
 
     plugins.withType<ApplicationPlugin> {

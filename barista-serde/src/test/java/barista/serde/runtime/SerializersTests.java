@@ -137,16 +137,6 @@ final class SerializersTests {
     }
 
     @Test
-    void testEscapeString() {
-        assertThat(Serializers.escapeString("test")).isEqualTo("test");
-        assertThat(Serializers.escapeString("test\n")).isEqualTo("test\\n");
-        assertThat(Serializers.escapeString("test\ntest")).isEqualTo("test\\ntest");
-        assertThat(Serializers.escapeString("test\u0000test")).isEqualTo("test\\u0000test");
-        assertThat(Serializers.escapeString("a\\b/c\"d")).isEqualTo("a\\\\b\\/c\\\"d");
-        assertThat(Serializers.escapeString("\n")).isEqualTo("\\n");
-    }
-
-    @Test
     void testSerializeOptional() {
         assertThat(Serializers.serialize(Optional.of("test"), Serializers::serialize).value())
                 .isEqualTo("\"test\"");

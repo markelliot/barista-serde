@@ -66,7 +66,7 @@ public final class Serializers {
         if (value == null) {
             return JsonCharSeq.NULL;
         }
-        return new JsonCharSeq("\"" + escapeString(value) + "\"");
+        return new JsonCharSeq("\"" + JsonStrings.escape(value) + "\"");
     }
 
     public static <T> JsonCharSeq serialize(
@@ -95,15 +95,15 @@ public final class Serializers {
     }
 
     public static <T> JsonCharSeq serialize(
-            Collection<T> list, Function<T, JsonCharSeq> serializer) {
-        if (list == null) {
+            Collection<T> collection, Function<T, JsonCharSeq> serializer) {
+        if (collection == null) {
             return JsonCharSeq.NULL;
         }
 
         Objects.requireNonNull(serializer);
 
         StringJoiner sj = new StringJoiner(",", "[", "]");
-        for (T item : list) {
+        for (T item : collection) {
             sj.add(serializer.apply(item));
         }
         return new JsonCharSeq(sj.toString());
@@ -132,58 +132,5 @@ public final class Serializers {
                             + valueSerializer.apply(entry.getValue()));
         }
         return new JsonCharSeq(sj.toString());
-    }
-
-    static CharSequence escapeString(String value) {
-        StringBuilder sb = new StringBuilder();
-        int written = 0;
-        int index = 0;
-
-        for (char ch : value.toCharArray()) {
-            switch (ch) {
-                case '"':
-                case '\\':
-                case '/':
-                    sb.append(value, written, index).append("\\").append(ch);
-                    written = index + 1;
-                    break;
-                case '\b':
-                    sb.append(value, written, index).append("\\b");
-                    written = index + 1;
-                    break;
-                case '\f':
-                    sb.append(value, written, index).append("\\f");
-                    written = index + 1;
-                    break;
-                case '\n':
-                    sb.append(value, written, index).append("\\n");
-                    written = index + 1;
-                    break;
-                case '\r':
-                    sb.append(value, written, index).append("\\r");
-                    written = index + 1;
-                    break;
-                case '\t':
-                    sb.append(value, written, index).append("\\t");
-                    written = index + 1;
-                    break;
-                default:
-                    if (ch < 0x20) {
-                        String charCode = Integer.toHexString(ch);
-                        sb.append(value, written, index)
-                                .append("\\u")
-                                .append("0".repeat(4 - charCode.length()))
-                                .append(charCode);
-                        written = index + 1;
-                    }
-                    break;
-            }
-            index++;
-        }
-        // add remainder
-        sb.append(value, written, value.length());
-        // TODO(markelliot): is it better to return the StringBuilder (which is a CharSequence) or
-        //  the rendered String here?
-        return sb.toString();
     }
 }
