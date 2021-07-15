@@ -27,12 +27,23 @@ final class JsonStringsTests {
     }
 
     @Test
-    void testEscapeString() {
+    void testEscape() {
+        assertThat(JsonStrings.escape("")).isEqualTo("");
         assertThat(JsonStrings.escape("test")).isEqualTo("test");
+        assertThat(JsonStrings.escape("\"")).isEqualTo("\\\"");
+        assertThat(JsonStrings.escape("\\")).isEqualTo("\\\\");
+        assertThat(JsonStrings.escape("/")).isEqualTo("\\/");
+        assertThat(JsonStrings.escape("\b")).isEqualTo("\\b");
+        assertThat(JsonStrings.escape("\f")).isEqualTo("\\f");
+        assertThat(JsonStrings.escape("\n")).isEqualTo("\\n");
+        assertThat(JsonStrings.escape("\r")).isEqualTo("\\r");
+        assertThat(JsonStrings.escape("\t")).isEqualTo("\\t");
+        assertThat(JsonStrings.escape("\0")).isEqualTo("\\u0000");
+        assertThat(JsonStrings.escape("\1")).isEqualTo("\\u0001");
+
         assertThat(JsonStrings.escape("test\n")).isEqualTo("test\\n");
         assertThat(JsonStrings.escape("test\ntest")).isEqualTo("test\\ntest");
         assertThat(JsonStrings.escape("test\u0000test")).isEqualTo("test\\u0000test");
         assertThat(JsonStrings.escape("a\\b/c\"d")).isEqualTo("a\\\\b\\/c\\\"d");
-        assertThat(JsonStrings.escape("\n")).isEqualTo("\\n");
     }
 }
