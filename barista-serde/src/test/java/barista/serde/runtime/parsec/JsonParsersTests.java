@@ -2,6 +2,7 @@ package barista.serde.runtime.parsec;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.markelliot.result.Result;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -12,14 +13,12 @@ final class JsonParsersTests {
     @Test
     public void testQuotedString() {
         ParseState state = Parsers.of("\"test\"");
-
         assertThat(JsonParsers.quotedString().parse(state).result()).contains("test");
     }
 
     @Test
     public void testQuotedString_whitespaceComposition() {
         ParseState state = Parsers.of("    \"test\"    ");
-
         assertThat(Parsers.whitespace(JsonParsers.quotedString()).parse(state).result())
                 .contains("test");
     }
@@ -27,17 +26,15 @@ final class JsonParsersTests {
     @Test
     public void testQuotedString_escapedChars() {
         ParseState state = Parsers.of("\"\\\"test\\\"\"");
-
         assertThat(JsonParsers.quotedString().parse(state).result()).contains("\"test\"");
     }
 
     @Test
     public void testQuotedString_missingStartQuote() {
-        ParseState state = Parsers.of("test");
-
-        assertThat(JsonParsers.quotedString().parse(state).error().map(ParseError::errorString))
-                .contains(
-                        """
+        assertError(
+                JsonParsers.quotedString(),
+                "test",
+                """
                         Parse error at line 1, column 1: Expected a quoted string and did not find a quote:
                         test
                         ^
@@ -46,11 +43,10 @@ final class JsonParsersTests {
 
     @Test
     public void testQuotedString_missingEndQuote() {
-        ParseState state = Parsers.of("\"test");
-
-        assertThat(JsonParsers.quotedString().parse(state).error().map(ParseError::errorString))
-                .contains(
-                        """
+        assertError(
+                JsonParsers.quotedString(),
+                "\"test",
+                """
                 Parse error at line 1, column 2: Reached end of stream looking for terminal quote:
                 "test
                  ^--^
@@ -68,25 +64,19 @@ final class JsonParsersTests {
 
     @Test
     public void testInteger_errorOnInvalid() {
-        assertThat(
-                        JsonParsers.integer()
-                                .parse(Parsers.of("test"))
-                                .error()
-                                .map(ParseError::errorString))
-                .contains(
-                        """
+        assertError(
+                JsonParsers.integer(),
+                "test",
+                """
                         Parse error at line 1, column 1: Cannot parse integer from value:
                         test
                         ^--^
                         """);
 
-        assertThat(
-                        JsonParsers.integer()
-                                .parse(Parsers.of("1e10"))
-                                .error()
-                                .map(ParseError::errorString))
-                .contains(
-                        """
+        assertError(
+                JsonParsers.integer(),
+                "1e10",
+                """
                         Parse error at line 1, column 1: Cannot parse integer from value:
                         1e10
                         ^--^
@@ -104,25 +94,19 @@ final class JsonParsersTests {
 
     @Test
     public void testParseLong_errorOnInvalid() {
-        assertThat(
-                        JsonParsers.longParser()
-                                .parse(Parsers.of("test"))
-                                .error()
-                                .map(ParseError::errorString))
-                .contains(
-                        """
+        assertError(
+                JsonParsers.longParser(),
+                "test",
+                """
                         Parse error at line 1, column 1: Cannot parse long from value:
                         test
                         ^--^
                         """);
 
-        assertThat(
-                        JsonParsers.longParser()
-                                .parse(Parsers.of("1e10"))
-                                .error()
-                                .map(ParseError::errorString))
-                .contains(
-                        """
+        assertError(
+                JsonParsers.longParser(),
+                "1e10",
+                """
                         Parse error at line 1, column 1: Cannot parse long from value:
                         1e10
                         ^--^
@@ -148,13 +132,10 @@ final class JsonParsersTests {
 
     @Test
     public void testDouble_errorOnInvalid() {
-        assertThat(
-                        JsonParsers.doubleParser()
-                                .parse(Parsers.of("test"))
-                                .error()
-                                .map(ParseError::errorString))
-                .contains(
-                        """
+        assertError(
+                JsonParsers.doubleParser(),
+                "test",
+                """
                         Parse error at line 1, column 1: Cannot parse double from value:
                         test
                         ^--^
@@ -205,88 +186,76 @@ final class JsonParsersTests {
                 Parsers.whitespace(
                         JsonParsers.collection(JsonParsers.quotedString(), ArrayList::new));
 
-        assertThat(
-                        strings.parse(Parsers.of("""
+        assertError(
+                strings,
+                """
             [
-            """))
-                                .error()
-                                .get()
-                                .errorString())
-                .isEqualTo(
-                        """
+            """,
+                """
             Parse error at line 1, column 1: Reached end of stream looking for end of collection:
             [
             ^^
             """);
 
-        assertThat(
-                        strings.parse(Parsers.of("""
+        assertError(
+                strings,
+                """
             ["a
-            """))
-                                .error()
-                                .get()
-                                .errorString())
-                .isEqualTo(
-                        """
+            """,
+                """
             Parse error at line 1, column 3: Reached end of stream looking for terminal quote:
             ["a
               ^^
             """);
 
-        assertThat(
-                        strings.parse(Parsers.of("""
+        assertError(
+                strings,
+                """
             ["a"
-            """))
-                                .error()
-                                .get()
-                                .errorString())
-                .isEqualTo(
-                        """
+            """,
+                """
             Parse error at line 1, column 1: Reached end of stream looking for end of collection:
             ["a"
             ^--^
             """);
 
-        assertThat(
-                        strings.parse(Parsers.of("""
+        assertError(
+                strings,
+                """
             ["a",
-            """))
-                                .error()
-                                .get()
-                                .errorString())
-                .isEqualTo(
-                        """
+            """,
+                """
             Parse error at line 1, column 6: Expected a quoted string and did not find a quote:
             ["a",
                  ^
             """);
 
-        assertThat(
-                        strings.parse(Parsers.of("""
+        assertError(
+                strings,
+                """
             ["a", "b
-            """))
-                                .error()
-                                .get()
-                                .errorString())
-                .isEqualTo(
-                        """
+            """,
+                """
             Parse error at line 1, column 8: Reached end of stream looking for terminal quote:
             ["a", "b
                    ^^
             """);
 
-        assertThat(
-                        strings.parse(Parsers.of("""
+        assertError(
+                strings,
+                """
             ["a", "b"
-            """))
-                                .error()
-                                .get()
-                                .errorString())
-                .isEqualTo(
-                        """
+            """,
+                """
             Parse error at line 1, column 1: Reached end of stream looking for end of collection:
             ["a", "b"
             ^-------^
             """);
+    }
+
+    private static void assertError(Parser<?> parser, String input, String error) {
+        Result<?, ParseError> result = parser.parse(Parsers.of(input));
+        assertThat(result.isError()).isTrue();
+        assertThat(result.error().map(ParseError::errorString)).contains(error);
     }
 }
