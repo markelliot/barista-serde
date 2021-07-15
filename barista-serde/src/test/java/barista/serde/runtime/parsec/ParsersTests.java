@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 final class ParsersTests {
     @Test
     public void testExpect_success() throws Exception {
-        ParseState state = Parsers.of("string");
+        ParseState state = ParseState.of("string");
         Parser<String> parser = Parsers.expect("string");
 
         assertThat(parser.parse(state).orElseThrow()).isEqualTo("string");
@@ -15,7 +15,7 @@ final class ParsersTests {
 
     @Test
     public void testExpect_error() throws Exception {
-        ParseState state = Parsers.of("stri...not");
+        ParseState state = ParseState.of("stri...not");
         Parser<String> parser = Parsers.expect("string");
 
         assertThat(parser.parse(state).error().map(ParseError::errorString))
@@ -29,7 +29,7 @@ final class ParsersTests {
 
     @Test
     public void testWhitespaceThenExpect_error() throws Exception {
-        ParseState state = Parsers.of("    stri...not");
+        ParseState state = ParseState.of("    stri...not");
         Parser<String> parser = Parsers.whitespace(Parsers.expect("string"));
 
         assertThat(parser.parse(state).error().map(ParseError::errorString))

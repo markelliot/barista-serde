@@ -97,11 +97,11 @@ public final class JsonParsers {
         };
     }
 
-    public static <T> Parser<Collection<T>> collection(
-            Parser<T> itemParser, Supplier<Collection<T>> collectionFactory) {
+    public static <T, C extends Collection<T>> Parser<C> collection(
+            Parser<T> itemParser, Supplier<C> collectionFactory) {
         Parser<T> liberalItemParser = Parsers.whitespace(itemParser);
         return state -> {
-            Collection<T> collection = collectionFactory.get();
+            C collection = collectionFactory.get();
 
             if (state.current() != '[') {
                 return Result.error(state.mark().error("Expected to find start of a collection"));

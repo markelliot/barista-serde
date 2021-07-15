@@ -30,6 +30,10 @@ public final class ParseState {
         this.seq = seq;
     }
 
+    public static ParseState of(String str) {
+        return new ParseState(str);
+    }
+
     /** Returns current character in the stream. */
     public int current() {
         return index < seq.length() ? seq.charAt(index) : -1;

@@ -3,9 +3,8 @@ package barista.serde.runtime.parsec;
 public record ParseError(
         int lineNumber, int columnNumber, int endColumnNumber, String context, String message) {
 
-    @Override
-    public String toString() {
-        return errorString();
+    public IllegalStateException toException() {
+        return new IllegalStateException(errorString());
     }
 
     public String errorString() {

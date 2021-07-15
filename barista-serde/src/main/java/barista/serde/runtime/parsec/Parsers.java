@@ -6,10 +6,6 @@ public final class Parsers {
 
     private Parsers() {}
 
-    public static ParseState of(String str) {
-        return new ParseState(str);
-    }
-
     /** Returns a parser that rewinds state if in error. */
     public static <T> Parser<T> maybe(Parser<T> parser) {
         return state -> {

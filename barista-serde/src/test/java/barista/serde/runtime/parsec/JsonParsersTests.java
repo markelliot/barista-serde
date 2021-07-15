@@ -5,32 +5,33 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.markelliot.result.Result;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 final class JsonParsersTests {
 
     @Test
-    public void testQuotedString() {
-        ParseState state = Parsers.of("\"test\"");
+    void testQuotedString() {
+        ParseState state = ParseState.of("\"test\"");
         assertThat(JsonParsers.quotedString().parse(state).result()).contains("test");
     }
 
     @Test
-    public void testQuotedString_whitespaceComposition() {
-        ParseState state = Parsers.of("    \"test\"    ");
+    void testQuotedString_whitespaceComposition() {
+        ParseState state = ParseState.of("    \"test\"    ");
         assertThat(Parsers.whitespace(JsonParsers.quotedString()).parse(state).result())
                 .contains("test");
     }
 
     @Test
-    public void testQuotedString_escapedChars() {
-        ParseState state = Parsers.of("\"\\\"test\\\"\"");
+    void testQuotedString_escapedChars() {
+        ParseState state = ParseState.of("\"\\\"test\\\"\"");
         assertThat(JsonParsers.quotedString().parse(state).result()).contains("\"test\"");
     }
 
     @Test
-    public void testQuotedString_missingStartQuote() {
+    void testQuotedString_missingStartQuote() {
         assertError(
                 JsonParsers.quotedString(),
                 "test",
@@ -42,7 +43,7 @@ final class JsonParsersTests {
     }
 
     @Test
-    public void testQuotedString_missingEndQuote() {
+    void testQuotedString_missingEndQuote() {
         assertError(
                 JsonParsers.quotedString(),
                 "\"test",
@@ -54,16 +55,16 @@ final class JsonParsersTests {
     }
 
     @Test
-    public void testInteger() {
-        assertThat(JsonParsers.integer().parse(Parsers.of("0")).result()).contains(0);
-        assertThat(JsonParsers.integer().parse(Parsers.of("1")).result()).contains(1);
-        assertThat(JsonParsers.integer().parse(Parsers.of("-0")).result()).contains(0);
-        assertThat(JsonParsers.integer().parse(Parsers.of("100")).result()).contains(100);
-        assertThat(JsonParsers.integer().parse(Parsers.of("-100")).result()).contains(-100);
+    void testInteger() {
+        assertThat(JsonParsers.integer().parse(ParseState.of("0")).result()).contains(0);
+        assertThat(JsonParsers.integer().parse(ParseState.of("1")).result()).contains(1);
+        assertThat(JsonParsers.integer().parse(ParseState.of("-0")).result()).contains(0);
+        assertThat(JsonParsers.integer().parse(ParseState.of("100")).result()).contains(100);
+        assertThat(JsonParsers.integer().parse(ParseState.of("-100")).result()).contains(-100);
     }
 
     @Test
-    public void testInteger_errorOnInvalid() {
+    void testInteger_errorOnInvalid() {
         assertError(
                 JsonParsers.integer(),
                 "test",
@@ -84,16 +85,16 @@ final class JsonParsersTests {
     }
 
     @Test
-    public void testParseLong() {
-        assertThat(JsonParsers.longParser().parse(Parsers.of("0")).result()).contains(0L);
-        assertThat(JsonParsers.longParser().parse(Parsers.of("1")).result()).contains(1L);
-        assertThat(JsonParsers.longParser().parse(Parsers.of("-0")).result()).contains(0L);
-        assertThat(JsonParsers.longParser().parse(Parsers.of("100")).result()).contains(100L);
-        assertThat(JsonParsers.longParser().parse(Parsers.of("-100")).result()).contains(-100L);
+    void testParseLong() {
+        assertThat(JsonParsers.longParser().parse(ParseState.of("0")).result()).contains(0L);
+        assertThat(JsonParsers.longParser().parse(ParseState.of("1")).result()).contains(1L);
+        assertThat(JsonParsers.longParser().parse(ParseState.of("-0")).result()).contains(0L);
+        assertThat(JsonParsers.longParser().parse(ParseState.of("100")).result()).contains(100L);
+        assertThat(JsonParsers.longParser().parse(ParseState.of("-100")).result()).contains(-100L);
     }
 
     @Test
-    public void testParseLong_errorOnInvalid() {
+    void testParseLong_errorOnInvalid() {
         assertError(
                 JsonParsers.longParser(),
                 "test",
@@ -114,24 +115,24 @@ final class JsonParsersTests {
     }
 
     @Test
-    public void testDouble() {
-        assertThat(JsonParsers.doubleParser().parse(Parsers.of("0")).result()).contains(0.0);
-        assertThat(JsonParsers.doubleParser().parse(Parsers.of("0.")).result()).contains(0.0);
-        assertThat(JsonParsers.doubleParser().parse(Parsers.of("-0.")).result()).contains(-0.0);
-        assertThat(JsonParsers.doubleParser().parse(Parsers.of("0.0")).result()).contains(0.0);
-        assertThat(JsonParsers.doubleParser().parse(Parsers.of("-Inf")).result())
+    void testDouble() {
+        assertThat(JsonParsers.doubleParser().parse(ParseState.of("0")).result()).contains(0.0);
+        assertThat(JsonParsers.doubleParser().parse(ParseState.of("0.")).result()).contains(0.0);
+        assertThat(JsonParsers.doubleParser().parse(ParseState.of("-0.")).result()).contains(-0.0);
+        assertThat(JsonParsers.doubleParser().parse(ParseState.of("0.0")).result()).contains(0.0);
+        assertThat(JsonParsers.doubleParser().parse(ParseState.of("-Inf")).result())
                 .contains(Double.NEGATIVE_INFINITY);
-        assertThat(JsonParsers.doubleParser().parse(Parsers.of("NaN")).result())
+        assertThat(JsonParsers.doubleParser().parse(ParseState.of("NaN")).result())
                 .contains(Double.NaN);
-        assertThat(JsonParsers.doubleParser().parse(Parsers.of("1e10")).result()).contains(1e10);
-        assertThat(JsonParsers.doubleParser().parse(Parsers.of("1.5e-10")).result())
+        assertThat(JsonParsers.doubleParser().parse(ParseState.of("1e10")).result()).contains(1e10);
+        assertThat(JsonParsers.doubleParser().parse(ParseState.of("1.5e-10")).result())
                 .contains(1.5e-10);
-        assertThat(JsonParsers.doubleParser().parse(Parsers.of("1.5e+10")).result())
+        assertThat(JsonParsers.doubleParser().parse(ParseState.of("1.5e+10")).result())
                 .contains(1.5e+10);
     }
 
     @Test
-    public void testDouble_errorOnInvalid() {
+    void testDouble_errorOnInvalid() {
         assertError(
                 JsonParsers.doubleParser(),
                 "test",
@@ -143,45 +144,39 @@ final class JsonParsersTests {
     }
 
     @Test
-    public void testCollectionOfQuotedStrings() throws Exception {
+    void testCollectionOfQuotedStrings() throws Exception {
         Parser<Collection<String>> strings =
                 Parsers.whitespace(
                         JsonParsers.collection(JsonParsers.quotedString(), ArrayList::new));
 
-        assertThat(strings.parse(Parsers.of("""
-            []
-            """)).result().get())
-                .isEqualTo(List.of());
+        assertThat(strings.parse(ParseState.of("[]")).orElseThrow()).isEqualTo(List.of());
 
-        assertThat(strings.parse(Parsers.of("""
-            [ ]
-            """)).result().get())
-                .isEqualTo(List.of());
+        assertThat(strings.parse(ParseState.of("[ ]")).orElseThrow()).isEqualTo(List.of());
 
-        assertThat(strings.parse(Parsers.of("""
+        assertThat(
+                        strings.parse(ParseState.of("""
             ["a"]
-            """)).orElseThrow())
+            """))
+                                .orElseThrow())
                 .containsExactly("a");
 
         assertThat(
-                        strings.parse(Parsers.of("""
+                        strings.parse(ParseState.of("""
             ["a", "b"]
             """))
-                                .result()
-                                .get())
+                                .orElseThrow())
                 .containsExactly("a", "b");
 
         assertThat(
-                        strings.parse(Parsers.of("""
+                        strings.parse(ParseState.of("""
             [ "a" , "b" ]
             """))
-                                .result()
-                                .get())
+                                .orElseThrow())
                 .containsExactly("a", "b");
     }
 
     @Test
-    public void testCollection_errors() throws Exception {
+    void testCollection_errors() throws Exception {
         Parser<Collection<String>> strings =
                 Parsers.whitespace(
                         JsonParsers.collection(JsonParsers.quotedString(), ArrayList::new));
@@ -253,8 +248,24 @@ final class JsonParsersTests {
             """);
     }
 
+    @Test
+    void testCollection_asSet() throws Exception {
+        Parser<Collection<String>> strings =
+                Parsers.whitespace(
+                        JsonParsers.collection(JsonParsers.quotedString(), LinkedHashSet::new));
+
+        assertThat(
+                        strings.parse(
+                                        ParseState.of(
+                                                """
+            ["a", "b", "c", "a", "b", "c"]
+            """))
+                                .orElseThrow())
+                .containsExactly("a", "b", "c");
+    }
+
     private static void assertError(Parser<?> parser, String input, String error) {
-        Result<?, ParseError> result = parser.parse(Parsers.of(input));
+        Result<?, ParseError> result = parser.parse(ParseState.of(input));
         assertThat(result.isError()).isTrue();
         assertThat(result.error().map(ParseError::errorString)).contains(error);
     }
