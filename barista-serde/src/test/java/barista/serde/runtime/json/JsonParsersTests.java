@@ -389,7 +389,7 @@ final class JsonParsersTests {
     @Test
     void testObjectParser() throws Exception {
         Parser<Map<String, Object>> parser =
-                JsonParsers.objectParser(
+                JsonParsers.object(
                         field ->
                                 switch (field) {
                                     case "a" -> JsonParsers.quotedString();

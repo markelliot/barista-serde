@@ -33,7 +33,7 @@ public final class ParseState {
         this.seq = seq;
     }
 
-    public static ParseState of(String str) {
+    public static ParseState of(CharSequence str) {
         return new ParseState(str);
     }
 

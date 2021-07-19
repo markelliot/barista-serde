@@ -118,13 +118,17 @@ public final class JsonParsers {
     //  1. Generate objectInternal() for each object we wish to parse.
     //  2. Accept a BiConsumer<String, Object> rather than creating a LinkedHashMap
     //  3. Produce a List<FieldRecord> for record FieldRecord(String field, Object value)
-    public static Parser<Map<String, Object>> objectParser(
-            Function<String, Parser<?>> fieldToParser) {
+    public static Parser<Map<String, Object>> object(Function<String, Parser<?>> fieldToParser) {
         return Parsers.between(
                 Parsers.expect('{'),
                 objectInternal(fieldToParser),
                 Parsers.whitespace(Parsers.expect('}')),
                 Map::of);
+    }
+
+    public static <T> Parser<T> object(
+            Function<String, Parser<?>> fieldToParser, Function<Map<String, Object>, T> map) {
+        return state -> object(fieldToParser).parse(state).mapResult(map);
     }
 
     private static Parser<Map<String, Object>> objectInternal(
@@ -174,6 +178,10 @@ public final class JsonParsers {
      */
     public static Parser<Object> valueConsumingParser() {
         return ValueConsumingParser.INSTANCE;
+    }
+
+    public static <T> Parser<T> unknownField(String field) {
+        return Parsers.error("Unknown field '" + field + "'");
     }
 
     static boolean isValueBoundary(int character) {

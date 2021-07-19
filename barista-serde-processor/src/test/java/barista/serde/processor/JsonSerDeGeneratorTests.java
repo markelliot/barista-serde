@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-final class JsonSerializerGeneratorTests {
+final class JsonSerDeGeneratorTests {
 
     @SerDe.Json
     public record TestRecord(Optional<String> testRecordField) {}
@@ -18,7 +18,7 @@ final class JsonSerializerGeneratorTests {
     @Test
     void testOtherRecordSerializationOutput() {
         assertThat(
-                        OtherRecordJsonSerializer.serialize(
+                        OtherRecordJsonSerDe.serialize(
                                 new OtherRecord(Map.of("1", new TestRecord(Optional.of("foo"))))))
                 .isEqualTo("{\"otherRecordField\":{\"1\":{\"testRecordField\":\"foo\"}}}");
     }

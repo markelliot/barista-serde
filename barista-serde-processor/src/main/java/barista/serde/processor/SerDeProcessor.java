@@ -1,7 +1,7 @@
 package barista.serde.processor;
 
 import barista.serde.annotations.SerDe;
-import barista.serde.processor.JsonSerializerGenerator.JsonField;
+import barista.serde.processor.JsonSerDeGenerator.JsonField;
 import com.google.auto.service.AutoService;
 import com.google.googlejavaformat.java.Formatter;
 import com.google.googlejavaformat.java.JavaFormatterOptions;
@@ -40,9 +40,7 @@ public final class SerDeProcessor extends AbstractProcessor {
             if (!roundEnv.processingOver()) {
                 Set<JavaFile> filesFromRound = processImpl(annotations, roundEnv);
                 for (JavaFile jf : filesFromRound) {
-                    String output =
-                            new Formatter(JavaFormatterOptions.builder().style(Style.AOSP).build())
-                                    .formatSourceAndFixImports(jf.toString());
+                    String output = format(jf);
                     writeTo(jf.packageName, jf.typeSpec, output, processingEnv.getFiler());
                 }
             }
@@ -52,6 +50,21 @@ public final class SerDeProcessor extends AbstractProcessor {
             error("An error occurred during annotation processing: " + sw, null);
         }
         return false;
+    }
+
+    /**
+     * Formats the provided JavaFile, or, if the formatter throws an exception, returns the
+     * JavaFile's default format.
+     */
+    private String format(JavaFile jf) {
+        String javaFileAsString = jf.toString();
+        try {
+            return new Formatter(JavaFormatterOptions.builder().style(Style.AOSP).build())
+                    .formatSourceAndFixImports(javaFileAsString);
+        } catch (Exception e) {
+            // if the formatter throws an exception, opt to output code anyway
+            return javaFileAsString;
+        }
     }
 
     // Copied from JavaFile
@@ -99,7 +112,7 @@ public final class SerDeProcessor extends AbstractProcessor {
                                                         ClassName.get(rce.asType())))
                                 .toList();
                 filesFromRound.add(
-                        JsonSerializerGenerator.generate(ClassName.get(classElement), fields));
+                        JsonSerDeGenerator.generate(ClassName.get(classElement), fields));
             }
         }
         return filesFromRound;
