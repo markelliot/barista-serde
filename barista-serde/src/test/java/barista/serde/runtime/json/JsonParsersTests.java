@@ -338,7 +338,7 @@ final class JsonParsersTests {
                 parser,
                 "{\"a\"",
                 """
-                Parse error at line 1, column 4: Expected a quoted string and did not find a quote:
+                Parse error at line 1, column 4: Expected to find ':':
                 {"a"
                    ^^
                 """);

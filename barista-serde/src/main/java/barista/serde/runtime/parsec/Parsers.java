@@ -1,6 +1,7 @@
 package barista.serde.runtime.parsec;
 
 import io.github.markelliot.result.Result;
+import java.util.function.Supplier;
 
 public final class Parsers {
 
@@ -32,6 +33,16 @@ public final class Parsers {
         return WhitespaceParser.INSTANCE;
     }
 
+    public static Parser<Character> expect(char expectation) {
+        return state -> {
+            if (state.current() == expectation) {
+                state.next(); // consume the expected char
+                return Result.ok(expectation);
+            }
+            return Result.error(state.mark().error("Expected to find '" + expectation + "'"));
+        };
+    }
+
     public static Parser<String> expect(String expectation) {
         return state -> {
             ParseState.Mark pos = state.mark();
@@ -53,6 +64,30 @@ public final class Parsers {
                 start.parse(state)
                         .flatMapResult(ignored -> parser.parse(state))
                         .flatMapResult(result -> end.parse(state).mapResult(ignored -> result));
+    }
+
+    public static <T> Parser<T> between(
+            Parser<?> start, Parser<T> parser, Parser<?> end, Supplier<T> defaultValue) {
+        Parser<?> maybeEnd = Parsers.maybe(end);
+        return state ->
+                start.parse(state)
+                        .flatMapResult(
+                                ignoredStart -> {
+                                    // if we immediately see the end, return the default value, we
+                                    // use a maybe parser
+                                    // to ensure we rewind because it's not an error to have an
+                                    // empty result
+                                    if (!maybeEnd.parse(state).isError()) {
+                                        return Result.ok(defaultValue.get());
+                                    }
+
+                                    return parser.parse(state)
+                                            .flatMapResult(
+                                                    result ->
+                                                            end.parse(state)
+                                                                    .mapResult(
+                                                                            ignoredEnd -> result));
+                                });
     }
 
     /** Returns a parser that always produces the provided error. */

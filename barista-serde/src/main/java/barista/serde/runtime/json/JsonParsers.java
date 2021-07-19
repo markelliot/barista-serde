@@ -1,5 +1,6 @@
 package barista.serde.runtime.json;
 
+import barista.serde.runtime.parsec.Empty;
 import barista.serde.runtime.parsec.ParseError;
 import barista.serde.runtime.parsec.ParseState;
 import barista.serde.runtime.parsec.Parser;
@@ -33,9 +34,10 @@ public final class JsonParsers {
     public static <T, C extends Collection<T>> Parser<C> collection(
             Parser<T> itemParser, Supplier<C> collectionFactory) {
         return Parsers.between(
-                Parsers.expect("["),
+                Parsers.expect('['),
                 Parsers.whitespace(collectionInternal(itemParser, collectionFactory)),
-                Parsers.whitespace(Parsers.expect("]")));
+                Parsers.whitespace(Parsers.expect(']')),
+                collectionFactory);
     }
 
     private static <T, C extends Collection<T>> Parser<C> collectionInternal(
@@ -62,12 +64,17 @@ public final class JsonParsers {
         };
     }
 
+    public static Parser<Empty> keyValueSeparator() {
+        return KeyValueSeparatorParser.INSTANCE;
+    }
+
     public static <K, V, M extends Map<K, V>> Parser<M> map(
             Function<String, K> keyFn, Parser<V> itemParser, Supplier<M> mapFactory) {
         return Parsers.between(
-                Parsers.expect("{"),
+                Parsers.expect('{'),
                 Parsers.whitespace(mapInternal(keyFn, itemParser, mapFactory)),
-                Parsers.whitespace(Parsers.expect("}")));
+                Parsers.whitespace(Parsers.expect('}')),
+                mapFactory);
     }
 
     private static <K, V, M extends Map<K, V>> Parser<M> mapInternal(
@@ -76,15 +83,15 @@ public final class JsonParsers {
             M map = mapFactory.get();
             while (!state.isEndOfStream()) {
                 Parsers.whitespace().parse(state);
-
                 Result<K, ParseError> key = quotedString().parse(state).mapResult(keyFn);
                 if (key.isError()) {
                     return key.coerce();
                 }
 
-                Parsers.whitespace().parse(state);
-                Parsers.expect(":").parse(state);
-                Parsers.whitespace().parse(state);
+                Result<Empty, ParseError> sep = keyValueSeparator().parse(state);
+                if (sep.isError()) {
+                    return sep.coerce();
+                }
 
                 Result<V, ParseError> item = itemParser.parse(state);
                 if (item.isError()) {
@@ -105,12 +112,19 @@ public final class JsonParsers {
         };
     }
 
+    // TODO(markelliot): this is one of the easiest ways to implement an object parser, but since
+    //  we can generate code, it's possible we might  be able to do better. A couple of variants to
+    //  consider:
+    //  1. Generate objectInternal() for each object we wish to parse.
+    //  2. Accept a BiConsumer<String, Object> rather than creating a LinkedHashMap
+    //  3. Produce a List<FieldRecord> for record FieldRecord(String field, Object value)
     public static Parser<Map<String, Object>> objectParser(
             Function<String, Parser<?>> fieldToParser) {
         return Parsers.between(
-                Parsers.expect("{"),
+                Parsers.expect('{'),
                 Parsers.whitespace(objectInternal(fieldToParser)),
-                Parsers.whitespace(Parsers.expect("}")));
+                Parsers.whitespace(Parsers.expect('}')),
+                Map::of);
     }
 
     private static Parser<Map<String, Object>> objectInternal(
@@ -125,9 +139,10 @@ public final class JsonParsers {
                     return key.coerce();
                 }
 
-                Parsers.whitespace().parse(state);
-                Parsers.expect(":").parse(state);
-                Parsers.whitespace().parse(state);
+                Result<Empty, ParseError> sep = keyValueSeparator().parse(state);
+                if (sep.isError()) {
+                    return sep.coerce();
+                }
 
                 String fieldName = key.unwrap();
                 Result<?, ParseError> item = fieldToParser.apply(fieldName).parse(state);
