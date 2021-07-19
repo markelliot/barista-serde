@@ -2,11 +2,11 @@ package barista.serde.runtime.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import barista.serde.runtime.json.JsonParsers;
 import barista.serde.runtime.parsec.ParseError;
 import barista.serde.runtime.parsec.ParseState;
 import barista.serde.runtime.parsec.Parser;
 import barista.serde.runtime.parsec.Parsers;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.github.markelliot.result.Result;
 import java.util.ArrayList;
@@ -66,17 +66,18 @@ final class JsonParsersTests {
 
     @Test
     void testInteger() {
-        assertThat(JsonParsers.integer().parse(ParseState.of("0")).result()).contains(0);
-        assertThat(JsonParsers.integer().parse(ParseState.of("1")).result()).contains(1);
-        assertThat(JsonParsers.integer().parse(ParseState.of("-0")).result()).contains(0);
-        assertThat(JsonParsers.integer().parse(ParseState.of("100")).result()).contains(100);
-        assertThat(JsonParsers.integer().parse(ParseState.of("-100")).result()).contains(-100);
+        assertThat(JsonParsers.integerParser().parse(ParseState.of("0")).result()).contains(0);
+        assertThat(JsonParsers.integerParser().parse(ParseState.of("1")).result()).contains(1);
+        assertThat(JsonParsers.integerParser().parse(ParseState.of("-0")).result()).contains(0);
+        assertThat(JsonParsers.integerParser().parse(ParseState.of("100")).result()).contains(100);
+        assertThat(JsonParsers.integerParser().parse(ParseState.of("-100")).result())
+                .contains(-100);
     }
 
     @Test
     void testInteger_errorOnInvalid() {
         assertError(
-                JsonParsers.integer(),
+                JsonParsers.integerParser(),
                 "test",
                 """
                         Parse error at line 1, column 1: Cannot parse integer from value:
@@ -85,7 +86,7 @@ final class JsonParsersTests {
                         """);
 
         assertError(
-                JsonParsers.integer(),
+                JsonParsers.integerParser(),
                 "1e10",
                 """
                         Parse error at line 1, column 1: Cannot parse integer from value:
@@ -381,6 +382,42 @@ final class JsonParsersTests {
                 {"a":"",}
                         ^
                 """);
+    }
+
+    record TestObj(String a, int b, double c, Collection<String> d) {}
+
+    @Test
+    void testObjectParser() throws Exception {
+        Parser<Map<String, Object>> parser =
+                JsonParsers.objectParser(
+                        field ->
+                                switch (field) {
+                                    case "a" -> JsonParsers.quotedString();
+                                    case "b" -> JsonParsers.integerParser();
+                                    case "c" -> JsonParsers.doubleParser();
+                                    case "d" -> JsonParsers.collection(
+                                            JsonParsers.quotedString(), ArrayList::new);
+                                    default -> JsonParsers.valueConsumingParser();
+                                        // Parsers.error("Unexpected field '" + field + "'");
+                                });
+        Function<Map<String, Object>, TestObj> ctor =
+                map ->
+                        new TestObj(
+                                (String) map.get("a"),
+                                (int) map.get("b"),
+                                (double) map.get("c"),
+                                (Collection<String>) map.get("d"));
+
+        Result<TestObj, ParseError> result =
+                parser.parse(
+                                ParseState.of(
+                                        """
+            {"e": { "foo": "bar" }, "a": "test", "b": 1, "c": 0.1, "d": ["a", "b", "c"]}
+            """))
+                        .mapResult(ctor);
+
+        assertThat(result.orElseThrow())
+                .isEqualTo(new TestObj("test", 1, 0.1, ImmutableList.of("a", "b", "c")));
     }
 
     private static void assertError(Parser<?> parser, String input, String error) {

@@ -1,4 +1,4 @@
-package barista.serde.runtime;
+package barista.serde.runtime.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

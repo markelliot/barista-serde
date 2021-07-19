@@ -1,4 +1,4 @@
-package barista.serde.runtime;
+package barista.serde.runtime.json;
 
 public final class JsonStrings {
     private JsonStrings() {}
@@ -66,57 +66,56 @@ public final class JsonStrings {
         return sb.toString();
     }
 
-    // TODO(markelliot): fix this to take a CharSequence and adjust foreach loop to for loop
-    public static CharSequence escape(String value) {
+    public static CharSequence escape(CharSequence value) {
         StringBuilder sb = new StringBuilder();
         int written = 0;
-        int index = 0;
 
-        for (char ch : value.toCharArray()) {
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
             switch (ch) {
-                case '"':
-                case '\\':
-                case '/':
-                    sb.append(value, written, index).append("\\").append(ch);
-                    written = index + 1;
-                    break;
-                case '\b':
-                    sb.append(value, written, index).append("\\b");
-                    written = index + 1;
-                    break;
-                case '\f':
-                    sb.append(value, written, index).append("\\f");
-                    written = index + 1;
-                    break;
-                case '\n':
-                    sb.append(value, written, index).append("\\n");
-                    written = index + 1;
-                    break;
-                case '\r':
-                    sb.append(value, written, index).append("\\r");
-                    written = index + 1;
-                    break;
-                case '\t':
-                    sb.append(value, written, index).append("\\t");
-                    written = index + 1;
-                    break;
-                default:
+                case '"', '\\', '/' -> {
+                    sb.append(value, written, i).append("\\").append(ch);
+                    written = i + 1;
+                }
+                case '\b' -> {
+                    sb.append(value, written, i).append("\\b");
+                    written = i + 1;
+                }
+                case '\f' -> {
+                    sb.append(value, written, i).append("\\f");
+                    written = i + 1;
+                }
+                case '\n' -> {
+                    sb.append(value, written, i).append("\\n");
+                    written = i + 1;
+                }
+                case '\r' -> {
+                    sb.append(value, written, i).append("\\r");
+                    written = i + 1;
+                }
+                case '\t' -> {
+                    sb.append(value, written, i).append("\\t");
+                    written = i + 1;
+                }
+                default -> {
                     if (ch < 0x20) {
                         String charCode = Integer.toHexString(ch);
-                        sb.append(value, written, index)
+                        sb.append(value, written, i)
                                 .append("\\u")
                                 .append("0".repeat(4 - charCode.length()))
                                 .append(charCode);
-                        written = index + 1;
+                        written = i + 1;
                     }
-                    break;
+                }
             }
-            index++;
+        }
+        // short-circuit if we made no replacements
+        if (written == 0) {
+            return value;
         }
         // add remainder
         sb.append(value, written, value.length());
-        // TODO(markelliot): is it better to return the StringBuilder (which is a CharSequence) or
-        //  the rendered String here?
+        // TODO(markelliot): StringBuilder#toString vs. CharSequence?
         return sb.toString();
     }
 }

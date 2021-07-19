@@ -1,7 +1,7 @@
 package barista.serde.processor;
 
-import barista.serde.runtime.JsonCharSeq;
-import barista.serde.runtime.Serializers;
+import barista.serde.runtime.json.JsonCharSeq;
+import barista.serde.runtime.json.Serializers;
 import com.google.common.collect.ImmutableSet;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;

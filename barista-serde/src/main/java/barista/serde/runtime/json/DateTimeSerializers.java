@@ -1,4 +1,4 @@
-package barista.serde.runtime;
+package barista.serde.runtime.json;
 
 import java.time.Instant;
 import java.time.LocalDate;

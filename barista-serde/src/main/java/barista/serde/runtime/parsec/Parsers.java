@@ -18,24 +18,18 @@ public final class Parsers {
         };
     }
 
+    public static <T> Parser<T> prefix(Parser<?> prefix, Parser<T> andThen) {
+        return state -> prefix.parse(state).flatMapResult(ignored -> andThen.parse(state));
+    }
+
     /** Returns a parser that first consumes any whitespace characters. */
     public static <T> Parser<T> whitespace(Parser<T> parser) {
-        return state -> {
-            whitespace().parse(state);
-            return parser.parse(state);
-        };
+        return prefix(whitespace(), parser);
     }
 
     /** Returns a parser that consumes any whitespace characters. */
     public static Parser<Empty> whitespace() {
-        return state -> {
-            // throw away whitespace characters
-            // we skip the isEndOfStream check because the EOS marker is not whitespace
-            while (Character.isWhitespace(state.current())) {
-                state.next();
-            }
-            return Result.ok(Empty.INSTANCE);
-        };
+        return WhitespaceParser.INSTANCE;
     }
 
     public static Parser<String> expect(String expectation) {
@@ -59,5 +53,10 @@ public final class Parsers {
                 start.parse(state)
                         .flatMapResult(ignored -> parser.parse(state))
                         .flatMapResult(result -> end.parse(state).mapResult(ignored -> result));
+    }
+
+    /** Returns a parser that always produces the provided error. */
+    public static <T> Parser<T> error(String error) {
+        return state -> Result.error(state.mark().error(error));
     }
 }

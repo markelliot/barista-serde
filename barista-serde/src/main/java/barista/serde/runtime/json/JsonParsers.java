@@ -1,106 +1,33 @@
 package barista.serde.runtime.json;
 
-import barista.serde.runtime.JsonStrings;
 import barista.serde.runtime.parsec.ParseError;
 import barista.serde.runtime.parsec.ParseState;
-import barista.serde.runtime.parsec.ParseState.Mark;
 import barista.serde.runtime.parsec.Parser;
 import barista.serde.runtime.parsec.Parsers;
 import io.github.markelliot.result.Result;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class JsonParsers {
-    private static final Map<String, Double> SPECIAL_NUMBERS =
-            Map.of(
-                    "-Infinity", Double.NEGATIVE_INFINITY,
-                    "-Inf", Double.NEGATIVE_INFINITY,
-                    "Infinity", Double.POSITIVE_INFINITY,
-                    "Inf", Double.POSITIVE_INFINITY,
-                    "NaN", Double.NaN);
-
     private JsonParsers() {}
 
     public static Parser<String> quotedString() {
-        return state -> {
-            int current = state.current();
-            if (current != '"') {
-                return Result.error(
-                        state.mark().error("Expected a quoted string and did not find a quote"));
-            }
-            current = state.next();
-
-            Mark start = state.mark();
-            int last = -1;
-            while (current != ParseState.EOS && !(current == '"' && last != '\\')) {
-                last = current;
-                current = state.next();
-            }
-            if (state.isEndOfStream()) {
-                return Result.error(
-                        start.error("Reached end of stream looking for terminal quote"));
-            }
-            Result<String, ParseError> result =
-                    Result.ok(JsonStrings.unescape(state.slice(start)).toString());
-
-            state.next(); // consume final quote
-            return result;
-        };
+        return QuotedStringParser.INSTANCE;
     }
 
-    public static Parser<Integer> integer() {
-        return state -> {
-            ParseState.Mark pos = state.mark();
-            int current = state.current();
-            while (!isValueBoundary(current)) {
-                current = state.next();
-            }
-            try {
-                return Result.ok(Integer.parseInt(state.slice(pos).toString()));
-            } catch (NumberFormatException nfe) {
-                return Result.error(pos.error("Cannot parse integer from value"));
-            }
-        };
+    public static Parser<Integer> integerParser() {
+        return IntegerParser.INSTANCE;
     }
 
     public static Parser<Long> longParser() {
-        return state -> {
-            ParseState.Mark pos = state.mark();
-            int current = state.current();
-            while (!isValueBoundary(current)) {
-                current = state.next();
-            }
-            try {
-                return Result.ok(Long.parseLong(state.slice(pos).toString()));
-            } catch (NumberFormatException nfe) {
-                return Result.error(pos.error("Cannot parse long from value"));
-            }
-        };
+        return LongParser.INSTANCE;
     }
 
     public static Parser<Double> doubleParser() {
-        return state -> {
-            ParseState.Mark pos = state.mark();
-            int current = state.current();
-            while (!isValueBoundary(current)) {
-                current = state.next();
-            }
-
-            // TODO(markelliot): maybe we should have a flag to allow this, it's a little more
-            //  liberal than the JSON spec, which disallows these special values
-            String numString = state.slice(pos).toString();
-            if (SPECIAL_NUMBERS.containsKey(numString)) {
-                return Result.ok(SPECIAL_NUMBERS.get(numString));
-            }
-
-            try {
-                return Result.ok(Double.parseDouble(numString));
-            } catch (NumberFormatException nfe) {
-                return Result.error(pos.error("Cannot parse double from value"));
-            }
-        };
+        return DoubleParser.INSTANCE;
     }
 
     public static <T, C extends Collection<T>> Parser<C> collection(
@@ -178,7 +105,63 @@ public final class JsonParsers {
         };
     }
 
-    private static boolean isValueBoundary(int character) {
+    public static Parser<Map<String, Object>> objectParser(
+            Function<String, Parser<?>> fieldToParser) {
+        return Parsers.between(
+                Parsers.expect("{"),
+                Parsers.whitespace(objectInternal(fieldToParser)),
+                Parsers.whitespace(Parsers.expect("}")));
+    }
+
+    private static Parser<Map<String, Object>> objectInternal(
+            Function<String, Parser<?>> fieldToParser) {
+        return state -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            while (!state.isEndOfStream()) {
+                Parsers.whitespace().parse(state);
+
+                Result<String, ParseError> key = quotedString().parse(state);
+                if (key.isError()) {
+                    return key.coerce();
+                }
+
+                Parsers.whitespace().parse(state);
+                Parsers.expect(":").parse(state);
+                Parsers.whitespace().parse(state);
+
+                String fieldName = key.unwrap();
+                Result<?, ParseError> item = fieldToParser.apply(fieldName).parse(state);
+                if (item.isError()) {
+                    return item.coerce();
+                }
+
+                Object fieldValue = item.unwrap();
+                map.put(fieldName, fieldValue);
+
+                // consume trailing whitespace
+                Parsers.whitespace().parse(state);
+                if (state.current() == ',') {
+                    state.next(); // consume ','
+                } else {
+                    break;
+                }
+            }
+            return Result.ok(map);
+        };
+    }
+
+    /**
+     * Returns a parser that will consume well-formed JSON values of arbitrary depth.
+     *
+     * <p>The parser produces results that may be numbers, strings, lists or maps, and the lists and
+     * maps may contain numbers, strings lists or maps. The result maps returned by this parser will
+     * always have string keys. The numbers returned by this parser will always be doubles.
+     */
+    public static Parser<Object> valueConsumingParser() {
+        return ValueConsumingParser.INSTANCE;
+    }
+
+    static boolean isValueBoundary(int character) {
         return Character.isWhitespace(character)
                 || switch (character) {
                     case '[', ']', '{', '}', ',', ParseState.EOS -> true;
