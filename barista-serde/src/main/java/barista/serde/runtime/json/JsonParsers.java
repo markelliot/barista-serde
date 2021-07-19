@@ -1,6 +1,11 @@
-package barista.serde.runtime.parsec;
+package barista.serde.runtime.json;
 
 import barista.serde.runtime.JsonStrings;
+import barista.serde.runtime.parsec.ParseError;
+import barista.serde.runtime.parsec.ParseState;
+import barista.serde.runtime.parsec.ParseState.Mark;
+import barista.serde.runtime.parsec.Parser;
+import barista.serde.runtime.parsec.Parsers;
 import io.github.markelliot.result.Result;
 import java.util.Collection;
 import java.util.Map;
@@ -27,7 +32,7 @@ public final class JsonParsers {
             }
             current = state.next();
 
-            ParseState.Mark start = state.mark();
+            Mark start = state.mark();
             int last = -1;
             while (current != ParseState.EOS && !(current == '"' && last != '\\')) {
                 last = current;
@@ -176,7 +181,7 @@ public final class JsonParsers {
     private static boolean isValueBoundary(int character) {
         return Character.isWhitespace(character)
                 || switch (character) {
-                    case '[', ']', '{', '}', ',', -1 -> true;
+                    case '[', ']', '{', '}', ',', ParseState.EOS -> true;
                     default -> false;
                 };
     }

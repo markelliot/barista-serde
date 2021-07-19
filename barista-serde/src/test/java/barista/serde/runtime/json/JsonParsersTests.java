@@ -1,7 +1,12 @@
-package barista.serde.runtime.parsec;
+package barista.serde.runtime.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import barista.serde.runtime.json.JsonParsers;
+import barista.serde.runtime.parsec.ParseError;
+import barista.serde.runtime.parsec.ParseState;
+import barista.serde.runtime.parsec.Parser;
+import barista.serde.runtime.parsec.Parsers;
 import com.google.common.collect.ImmutableMap;
 import io.github.markelliot.result.Result;
 import java.util.ArrayList;
@@ -11,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 final class JsonParsersTests {
@@ -24,7 +30,7 @@ final class JsonParsersTests {
     @Test
     void testQuotedString_whitespaceComposition() {
         ParseState state = ParseState.of("    \"test\"    ");
-        assertThat(Parsers.whitespace(JsonParsers.quotedString()).parse(state).result())
+        Assertions.assertThat(Parsers.whitespace(JsonParsers.quotedString()).parse(state).result())
                 .contains("test");
     }
 
