@@ -35,7 +35,7 @@ public final class JsonParsers {
             Parser<T> itemParser, Supplier<C> collectionFactory) {
         return Parsers.between(
                 Parsers.expect('['),
-                Parsers.whitespace(collectionInternal(itemParser, collectionFactory)),
+                collectionInternal(itemParser, collectionFactory),
                 Parsers.whitespace(Parsers.expect(']')),
                 collectionFactory);
     }
@@ -72,7 +72,7 @@ public final class JsonParsers {
             Function<String, K> keyFn, Parser<V> itemParser, Supplier<M> mapFactory) {
         return Parsers.between(
                 Parsers.expect('{'),
-                Parsers.whitespace(mapInternal(keyFn, itemParser, mapFactory)),
+                mapInternal(keyFn, itemParser, mapFactory),
                 Parsers.whitespace(Parsers.expect('}')),
                 mapFactory);
     }
@@ -122,7 +122,7 @@ public final class JsonParsers {
             Function<String, Parser<?>> fieldToParser) {
         return Parsers.between(
                 Parsers.expect('{'),
-                Parsers.whitespace(objectInternal(fieldToParser)),
+                objectInternal(fieldToParser),
                 Parsers.whitespace(Parsers.expect('}')),
                 Map::of);
     }

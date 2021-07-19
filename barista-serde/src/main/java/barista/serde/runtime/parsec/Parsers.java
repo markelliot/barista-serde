@@ -74,9 +74,8 @@ public final class Parsers {
                         .flatMapResult(
                                 ignoredStart -> {
                                     // if we immediately see the end, return the default value, we
-                                    // use a maybe parser
-                                    // to ensure we rewind because it's not an error to have an
-                                    // empty result
+                                    // use a maybe parser to ensure we rewind because it's not an
+                                    // error to have an empty result
                                     if (!maybeEnd.parse(state).isError()) {
                                         return Result.ok(defaultValue.get());
                                     }

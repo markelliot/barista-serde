@@ -198,7 +198,7 @@ final class JsonParsersTests {
             [
             """,
                 """
-            Parse error at line 1, column 2: Expected to find ']':
+            Parse error at line 1, column 2: Expected a quoted string and did not find a quote:
             [
              ^
             """);
