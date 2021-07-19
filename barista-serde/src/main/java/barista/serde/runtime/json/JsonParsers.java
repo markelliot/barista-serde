@@ -19,12 +19,24 @@ public final class JsonParsers {
         return QuotedStringParser.INSTANCE;
     }
 
+    public static Parser<Byte> byteParser() {
+        return ByteParser.INSTANCE;
+    }
+
+    public static Parser<Short> shortParser() {
+        return ShortParser.INSTANCE;
+    }
+
     public static Parser<Integer> integerParser() {
         return IntegerParser.INSTANCE;
     }
 
     public static Parser<Long> longParser() {
         return LongParser.INSTANCE;
+    }
+
+    public static Parser<Float> floatParser() {
+        return FloatParser.INSTANCE;
     }
 
     public static Parser<Double> doubleParser() {

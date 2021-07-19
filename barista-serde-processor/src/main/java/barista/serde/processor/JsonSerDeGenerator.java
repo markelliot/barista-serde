@@ -32,6 +32,7 @@ import java.util.function.Function;
 import javax.lang.model.element.Modifier;
 
 public final class JsonSerDeGenerator {
+    private static final String CLASS_EXT = "JsonSerDe";
 
     public record JsonField(String name, TypeName type) {}
 
@@ -40,7 +41,7 @@ public final class JsonSerDeGenerator {
     public static JavaFile generate(ClassName originalClass, List<JsonField> fields) {
         ClassName serDeClassName =
                 ClassName.get(
-                        originalClass.packageName(), originalClass.simpleName() + "JsonSerDe");
+                        originalClass.packageName(), originalClass.simpleName() + CLASS_EXT);
         TypeSpec serializerClass =
                 TypeSpec.classBuilder(serDeClassName.simpleName())
                         .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
@@ -92,6 +93,12 @@ public final class JsonSerDeGenerator {
         if (type.equals(ClassName.get(String.class))) {
             return CodeBlock.of("$T.quotedString()", JsonParsers.class);
         }
+        if (type.equals(ClassName.get(Byte.class)) || type.equals(TypeName.BYTE)) {
+            return CodeBlock.of("$T.byteParser()", JsonParsers.class);
+        }
+        if (type.equals(ClassName.get(Short.class)) || type.equals(TypeName.SHORT)) {
+            return CodeBlock.of("$T.shortParser()", JsonParsers.class);
+        }
         if (type.equals(ClassName.get(Integer.class)) || type.equals(TypeName.INT)) {
             return CodeBlock.of("$T.integerParser()", JsonParsers.class);
         }
@@ -106,9 +113,12 @@ public final class JsonSerDeGenerator {
         }
 
         if (type instanceof ParameterizedTypeName parameterizedType) {
-            // it's intrinsic and since we're here must have type parameters
             ClassName rawType = parameterizedType.rawType;
             if (rawType.equals(ClassName.get(Optional.class))) {
+                // TODO(markelliot): while the serializer side supports any amount of nesting
+                //  of Optionals, the deserializer side is a bit broken for Optional<Optional>
+                //  and maybe for Collection/Maps with values that are Optionals (these are, more
+                //  generally pretty broken in JSON anyway)
                 return jsonParserCall(parameterizedType.typeArguments.get(0));
             }
 
@@ -151,7 +161,7 @@ public final class JsonSerDeGenerator {
         }
         return CodeBlock.of(
                 "$T.parser()",
-                ClassName.get(className.packageName(), className.simpleName() + "JsonSerDe"));
+                ClassName.get(className.packageName(), className.simpleName() + CLASS_EXT));
     }
 
     private static CodeBlock getKeyFn(TypeName type) {
@@ -309,7 +319,7 @@ public final class JsonSerDeGenerator {
         }
         return CodeBlock.of(
                 "$T.serialize($L)",
-                ClassName.get(className.packageName(), className.simpleName() + "JsonSerDe"),
+                ClassName.get(className.packageName(), className.simpleName() + CLASS_EXT),
                 fieldAccessor);
     }
 
