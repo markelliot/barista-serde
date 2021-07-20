@@ -24,6 +24,7 @@ import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.RecordComponentElement;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
@@ -96,13 +97,13 @@ public final class SerDeProcessor extends AbstractProcessor {
             }
 
             TypeElement classElement = (TypeElement) element;
-            List<? extends RecordComponentElement> recordComponents =
-                    classElement.getRecordComponents();
-            if (recordComponents.isEmpty()) {
+            if (!ElementKind.RECORD.equals(classElement.getKind())) {
                 error(
                         "SerDe.Json presently only generates serializers for record classes",
                         element);
             } else {
+                List<? extends RecordComponentElement> recordComponents =
+                    classElement.getRecordComponents();
                 List<JsonField> fields =
                         recordComponents.stream()
                                 .map(
