@@ -2,16 +2,12 @@ package barista.serde.runtime.json;
 
 import static barista.serde.runtime.json.JsonParserAsserts.assertThatError;
 import static barista.serde.runtime.json.JsonParserAsserts.assertThatResult;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import barista.serde.runtime.parsec.Empty;
-import barista.serde.runtime.parsec.ParseError;
-import barista.serde.runtime.parsec.ParseState;
 import barista.serde.runtime.parsec.Parser;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.github.markelliot.result.Result;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -58,7 +54,9 @@ final class JsonParsersTests {
 
     @Test
     void testUnknownField() {
-        assertThatError(JsonParsers.unknownField("field"), "any").contains("""
+        assertThatError(JsonParsers.unknownField("field"), "any")
+                .contains(
+                        """
             Parse error at line 1, column 1: Unknown field 'field':
             any
             ^
@@ -236,10 +234,9 @@ final class JsonParsersTests {
         assertThatResult(JsonParsers.any(), "0").isEqualTo(0.0);
         assertThatResult(JsonParsers.any(), "\"test\"").isEqualTo("test");
         assertThatResult(JsonParsers.any(), "[\"test\"]").isEqualTo(ImmutableList.of("test"));
-        assertThatResult(JsonParsers.any(), "{\"a\": \"A\"}")
-            .isEqualTo(ImmutableMap.of("a", "A"));
-        assertThatResult(JsonParsers.any(), "[[\"test\"]]").isEqualTo(
-            ImmutableList.of(ImmutableList.of("test")));
+        assertThatResult(JsonParsers.any(), "{\"a\": \"A\"}").isEqualTo(ImmutableMap.of("a", "A"));
+        assertThatResult(JsonParsers.any(), "[[\"test\"]]")
+                .isEqualTo(ImmutableList.of(ImmutableList.of("test")));
     }
 
     record TestObj(String a, int b, double c, Collection<String> d) {}
@@ -258,17 +255,17 @@ final class JsonParsersTests {
                                     default -> JsonParsers.any();
                                 },
                         map ->
-                        new TestObj(
-                            (String) map.get("a"),
-                            (int) map.get("b"),
-                            (double) map.get("c"),
-                            (Collection<String>) map.get("d")));
+                                new TestObj(
+                                        (String) map.get("a"),
+                                        (int) map.get("b"),
+                                        (double) map.get("c"),
+                                        (Collection<String>) map.get("d")));
 
-        assertThatResult(parser,
-            """
+        assertThatResult(
+                        parser,
+                        """
             {"e": { "foo": "bar" }, "a": "test", "b": 1, "c": 0.1, "d": ["a", "b", "c"]}
             """)
                 .isEqualTo(new TestObj("test", 1, 0.1, ImmutableList.of("a", "b", "c")));
     }
-
 }

@@ -149,7 +149,7 @@ final class SerializersTests {
                                             throw new IllegalStateException();
                                         })
                                 .value())
-                .isEqualTo("");
+                .isEqualTo("null");
     }
 
     @Test
@@ -162,7 +162,7 @@ final class SerializersTests {
                                             throw new IllegalStateException();
                                         })
                                 .value())
-                .isEqualTo("");
+                .isEqualTo("null");
     }
 
     @Test
@@ -175,7 +175,7 @@ final class SerializersTests {
                                             throw new IllegalStateException();
                                         })
                                 .value())
-                .isEqualTo("");
+                .isEqualTo("null");
     }
 
     @Test
@@ -188,7 +188,7 @@ final class SerializersTests {
                                             throw new IllegalStateException();
                                         })
                                 .value())
-                .isEqualTo("");
+                .isEqualTo("null");
     }
 
     @Test
