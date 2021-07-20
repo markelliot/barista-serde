@@ -40,8 +40,7 @@ public final class JsonSerDeGenerator {
 
     public static JavaFile generate(ClassName originalClass, List<JsonField> fields) {
         ClassName serDeClassName =
-                ClassName.get(
-                        originalClass.packageName(), originalClass.simpleName() + CLASS_EXT);
+                ClassName.get(originalClass.packageName(), originalClass.simpleName() + CLASS_EXT);
         TypeSpec serializerClass =
                 TypeSpec.classBuilder(serDeClassName.simpleName())
                         .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
@@ -187,20 +186,7 @@ public final class JsonSerDeGenerator {
     private static MethodSpec mapper(ClassName originalClass, List<JsonField> fields) {
         CodeBlock args =
                 CodeBlock.join(
-                        fields.stream()
-                                .map(
-                                        f -> {
-                                            if (f.type.equals(ClassName.get(Optional.class))) {
-                                                return CodeBlock.of(
-                                                        "$T.ofNullable(($T) map.get($S))",
-                                                        Optional.class,
-                                                        f.type,
-                                                        f.name);
-                                            }
-                                            return CodeBlock.of("($T) map.get($S)", f.type, f.name);
-                                        })
-                                .toList(),
-                        ",");
+                        fields.stream().map(JsonSerDeGenerator::getMapperCall).toList(), ",");
         return MethodSpec.methodBuilder("map")
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
                 .returns(originalClass)
@@ -208,6 +194,18 @@ public final class JsonSerDeGenerator {
                         ParameterizedTypeName.get(Map.class, String.class, Object.class), "map")
                 .addStatement("return new $T($L)", originalClass, args)
                 .build();
+    }
+
+    private static CodeBlock getMapperCall(JsonField f) {
+        if (f.type instanceof ParameterizedTypeName ptn
+                && ptn.rawType.equals(ClassName.get(Optional.class))) {
+            return CodeBlock.of(
+                    "$T.ofNullable(($T) map.get($S))",
+                    Optional.class,
+                    ptn.typeArguments.get(0),
+                    f.name);
+        }
+        return CodeBlock.of("($T) map.get($S)", f.type, f.name);
     }
 
     private static MethodSpec parserMethod(ClassName originalClass) {
