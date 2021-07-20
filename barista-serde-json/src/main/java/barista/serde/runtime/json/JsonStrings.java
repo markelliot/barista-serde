@@ -9,9 +9,9 @@ public final class JsonStrings {
         StringBuilder sb = new StringBuilder();
         int read = 0;
         for (int i = 0; i < value.length(); i++) {
-            if (value.charAt(i) == '\\') {
+            char next = value.charAt(i);
+            if (next == '\\') {
                 i += 1;
-                char next = value.charAt(i);
                 switch (next) {
                     case '"', '\\', '/' -> {
                         sb.append(value, read, i - 1).append(next);
