@@ -21,7 +21,7 @@ final class AnyValueParser implements Parser<Object> {
 
     @Override
     public Result<Object, ParseError> parse(ParseState state) {
-        Parsers.whitespace().parse(state);
+        state.skipWhitespace();
 
         Parser<?> valueParser =
                 switch (state.current()) {

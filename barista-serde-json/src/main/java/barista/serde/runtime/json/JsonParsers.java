@@ -94,15 +94,15 @@ public final class JsonParsers {
         return state -> {
             C collection = collectionFactory.get();
             while (!state.isEndOfStream()) {
-                Parsers.whitespace().parse(state);
+                state.skipWhitespace();
+
                 Result<T, ParseError> item = itemParser.parse(state);
                 if (item.isError()) {
                     return item.coerce();
                 }
                 item.mapResult(collection::add);
 
-                // consume trailing whitespace
-                Parsers.whitespace().parse(state);
+                state.skipWhitespace();
                 if (state.current() == ',') {
                     state.next(); // consume ','
                 } else {
@@ -129,7 +129,7 @@ public final class JsonParsers {
         return state -> {
             Map<K, V> map = mapFactory.get();
             while (!state.isEndOfStream()) {
-                Parsers.whitespace().parse(state);
+                state.skipWhitespace();
                 Result<K, ParseError> key = string().parse(state).mapResult(keyFn);
                 if (key.isError()) {
                     return key.coerce();
@@ -149,7 +149,7 @@ public final class JsonParsers {
                 map.put(realKey, item.unwrap());
 
                 // consume trailing whitespace
-                Parsers.whitespace().parse(state);
+                state.skipWhitespace();
                 if (state.current() == ',') {
                     state.next(); // consume ','
                 } else {

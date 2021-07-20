@@ -63,7 +63,7 @@ public final class JsonStrings {
         // we made some replacements, so add the remainder
         sb.append(value, read, value.length());
         // TODO(markelliot): StringBuilder#toString vs. CharSequence?
-        return sb.toString();
+        return sb;
     }
 
     public static CharSequence escape(CharSequence value) {

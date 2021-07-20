@@ -16,9 +16,9 @@ final class KeyValueSeparatorParser implements Parser<Empty> {
 
     @Override
     public Result<Empty, ParseError> parse(ParseState state) {
-        Parsers.whitespace().parse(state);
+        state.skipWhitespace();
         Result<Character, ParseError> sep = colon.parse(state);
-        Parsers.whitespace().parse(state);
+        state.skipWhitespace();
         return sep.mapResult(r -> Empty.INSTANCE);
     }
 }
