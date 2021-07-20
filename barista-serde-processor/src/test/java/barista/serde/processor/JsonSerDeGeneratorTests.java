@@ -12,6 +12,15 @@ import org.junit.jupiter.api.Test;
 final class JsonSerDeGeneratorTests {
 
     @SerDe.Json
+    public record EmptyRecord() {}
+
+    @SerDe.Json
+    public record StringRecord(String field) {}
+
+    @SerDe.Json
+    public record IntrinsicsRecord(String str, double dbl, int integer) {}
+
+    @SerDe.Json
     public record TestRecord(Optional<String> testRecordField) {}
 
     @SerDe.Json
@@ -34,5 +43,10 @@ final class JsonSerDeGeneratorTests {
                                 .orElseThrow())
                 .isEqualTo(
                         new OtherRecord(ImmutableMap.of("1", new TestRecord(Optional.of("foo")))));
+        assertThat(
+                        OtherRecordJsonSerDe.deserialize(
+                                        new JsonCharSeq("{\"otherRecordField\":{\"1\":{}}}"))
+                                .orElseThrow())
+                .isEqualTo(new OtherRecord(ImmutableMap.of("1", new TestRecord(Optional.empty()))));
     }
 }

@@ -7,32 +7,45 @@ import barista.serde.runtime.parsec.Parser;
 import barista.serde.runtime.parsec.Parsers;
 import io.github.markelliot.result.Result;
 import java.util.Collection;
-import java.util.LinkedHashMap;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class JsonParsers {
     private JsonParsers() {}
 
-    public static Parser<String> quotedString() {
+    public static Parser<String> string() {
         return QuotedStringParser.INSTANCE;
     }
 
+    public static Parser<Boolean> booleanParser() {
+        return BooleanParser.INSTANCE;
+    }
+
+    public static Parser<Character> charParser() {
+        return QuotedCharParser.INSTANCE;
+    }
+
     public static Parser<Byte> byteParser() {
-        return ByteParser.INSTANCE;
+        return WholeNumberParser.BYTE;
     }
 
     public static Parser<Short> shortParser() {
-        return ShortParser.INSTANCE;
+        return WholeNumberParser.SHORT;
     }
 
     public static Parser<Integer> integerParser() {
-        return IntegerParser.INSTANCE;
+        return WholeNumberParser.INT;
     }
 
     public static Parser<Long> longParser() {
-        return LongParser.INSTANCE;
+        return WholeNumberParser.LONG;
     }
 
     public static Parser<Float> floatParser() {
@@ -41,6 +54,30 @@ public final class JsonParsers {
 
     public static Parser<Double> doubleParser() {
         return DoubleParser.INSTANCE;
+    }
+
+    public static Parser<Empty> nullParser() {
+        return NullParser.INSTANCE;
+    }
+
+    public static <T> Parser<Optional<T>> optional(Parser<T> itemParser) {
+        return OptionalParser.of(itemParser);
+    }
+
+    public static Parser<OptionalInt> optionalInt() {
+        return OptionalParser.INT;
+    }
+
+    public static Parser<OptionalLong> optionalLong() {
+        return OptionalParser.LONG;
+    }
+
+    public static Parser<OptionalDouble> optionalDouble() {
+        return OptionalParser.DOUBLE;
+    }
+
+    private static Parser<Empty> keyValueSeparator() {
+        return KeyValueSeparatorParser.INSTANCE;
     }
 
     public static <T, C extends Collection<T>> Parser<C> collection(
@@ -76,26 +113,24 @@ public final class JsonParsers {
         };
     }
 
-    public static Parser<Empty> keyValueSeparator() {
-        return KeyValueSeparatorParser.INSTANCE;
-    }
-
-    public static <K, V, M extends Map<K, V>> Parser<M> map(
-            Function<String, K> keyFn, Parser<V> itemParser, Supplier<M> mapFactory) {
+    public static <K, V> Parser<Map<K, V>> map(
+            Function<String, K> keyFn, Parser<V> itemParser, Supplier<Map<K, V>> mapFactory) {
         return Parsers.between(
                 Parsers.expect('{'),
-                mapInternal(keyFn, itemParser, mapFactory),
+                mapInternal(keyFn, ignored -> itemParser, mapFactory),
                 Parsers.whitespace(Parsers.expect('}')),
                 mapFactory);
     }
 
-    private static <K, V, M extends Map<K, V>> Parser<M> mapInternal(
-            Function<String, K> keyFn, Parser<V> itemParser, Supplier<M> mapFactory) {
+    private static <K, V> Parser<Map<K, V>> mapInternal(
+            Function<String, K> keyFn,
+            Function<K, Parser<V>> itemParser,
+            Supplier<Map<K, V>> mapFactory) {
         return state -> {
-            M map = mapFactory.get();
+            Map<K, V> map = mapFactory.get();
             while (!state.isEndOfStream()) {
                 Parsers.whitespace().parse(state);
-                Result<K, ParseError> key = quotedString().parse(state).mapResult(keyFn);
+                Result<K, ParseError> key = string().parse(state).mapResult(keyFn);
                 if (key.isError()) {
                     return key.coerce();
                 }
@@ -105,12 +140,13 @@ public final class JsonParsers {
                     return sep.coerce();
                 }
 
-                Result<V, ParseError> item = itemParser.parse(state);
+                K realKey = key.unwrap();
+                Result<V, ParseError> item = itemParser.apply(realKey).parse(state);
                 if (item.isError()) {
                     return item.coerce();
                 }
 
-                map.put(key.unwrap(), item.unwrap());
+                map.put(realKey, item.unwrap());
 
                 // consume trailing whitespace
                 Parsers.whitespace().parse(state);
@@ -120,78 +156,89 @@ public final class JsonParsers {
                     break;
                 }
             }
-            return Result.ok(map);
-        };
-    }
-
-    // TODO(markelliot): this is one of the easiest ways to implement an object parser, but since
-    //  we can generate code, it's possible we might  be able to do better. A couple of variants to
-    //  consider:
-    //  1. Generate objectInternal() for each object we wish to parse.
-    //  2. Accept a BiConsumer<String, Object> rather than creating a LinkedHashMap
-    //  3. Produce a List<FieldRecord> for record FieldRecord(String field, Object value)
-    public static Parser<Map<String, Object>> object(Function<String, Parser<?>> fieldToParser) {
-        return Parsers.between(
-                Parsers.expect('{'),
-                objectInternal(fieldToParser),
-                Parsers.whitespace(Parsers.expect('}')),
-                Map::of);
-    }
-
-    public static <T> Parser<T> object(
-            Function<String, Parser<?>> fieldToParser, Function<Map<String, Object>, T> map) {
-        return state -> object(fieldToParser).parse(state).mapResult(map);
-    }
-
-    private static Parser<Map<String, Object>> objectInternal(
-            Function<String, Parser<?>> fieldToParser) {
-        return state -> {
-            Map<String, Object> map = new LinkedHashMap<>();
-            while (!state.isEndOfStream()) {
-                Parsers.whitespace().parse(state);
-
-                Result<String, ParseError> key = quotedString().parse(state);
-                if (key.isError()) {
-                    return key.coerce();
-                }
-
-                Result<Empty, ParseError> sep = keyValueSeparator().parse(state);
-                if (sep.isError()) {
-                    return sep.coerce();
-                }
-
-                String fieldName = key.unwrap();
-                Result<?, ParseError> item = fieldToParser.apply(fieldName).parse(state);
-                if (item.isError()) {
-                    return item.coerce();
-                }
-
-                Object fieldValue = item.unwrap();
-                map.put(fieldName, fieldValue);
-
-                // consume trailing whitespace
-                Parsers.whitespace().parse(state);
-                if (state.current() == ',') {
-                    state.next(); // consume ','
-                } else {
-                    break;
-                }
-            }
-            return Result.ok(map);
+            return Result.ok(Collections.unmodifiableMap(map));
         };
     }
 
     /**
-     * Returns a parser that will consume well-formed JSON values of arbitrary depth.
+     * Returns a parser that parses field values using the parsers returned by {@code fieldToParser}
+     * and that takes the parsing results presented as a {@code Map<String, Object>} and creates the
+     * desired type using {@code map}.
      *
-     * <p>The parser produces results that may be numbers, strings, lists or maps, and the lists and
-     * maps may contain numbers, strings lists or maps. The result maps returned by this parser will
-     * always have string keys. The numbers returned by this parser will always be doubles.
+     * <p>See {@link #objectAsMap(Function)} for additional details on authoring {@code
+     * fieldToParser} functions.
      */
-    public static Parser<Object> valueConsumingParser() {
-        return ValueConsumingParser.INSTANCE;
+    // TODO(markelliot): this is one of the easiest ways to implement an object parser, but since
+    //  we can generate code, it's possible we might be able to do better. A couple of variants to
+    //  consider:
+    //  1. Generate objectInternal() for each object we wish to parse.
+    //  2. Accept a BiConsumer<String, Object> rather than creating a HashMap
+    //  3. Produce a List<FieldRecord> for record FieldRecord(String field, Object value)
+    public static <T> Parser<T> object(
+            Function<String, Parser<?>> fieldToParser, Function<Map<String, Object>, T> map) {
+        return state -> objectAsMap(fieldToParser).parse(state).mapResult(map);
     }
 
+    /**
+     * Returns a parser that parses field values using the parsers returned by {@code fieldToParser}
+     * and produces a {@code Map<String, Object>} with keys corresponding to encountered keys and
+     * values resulting from running the specified field value parsers.
+     *
+     * <p>Note: callers must supply a {@code fieldToParser} function that handles <em>any</em>
+     * potential key. A common pattern is to produce a function that handles each field as a switch
+     * statement and then also provides a default handler. For instance, to ignore unknown fields, a
+     * caller might produce a function:
+     *
+     * <pre>{@code
+     * field -> switch (field) {
+     *     case 'known' -> JsonParsers.string();
+     *     default -> JsonParsers.any();
+     * }
+     * }</pre>
+     *
+     * <p>Similarly, to produce a parser that errors when encountering unknown fields:
+     *
+     * <pre>{@code
+     * field -> switch (field) {
+     *     case 'known' -> JsonParsers.string();
+     *     default -> JsonParsers.unknownField(field);
+     * }
+     * }</pre>
+     */
+    public static Parser<Map<String, Object>> objectAsMap(
+            Function<String, Parser<?>> fieldToParser) {
+        return Parsers.between(
+                Parsers.expect('{'),
+                mapInternal(
+                        Function.identity(),
+                        field -> Parsers.composeResult(fieldToParser.apply(field), r -> (Object) r),
+                        HashMap::new),
+                Parsers.whitespace(Parsers.expect('}')),
+                Map::of);
+    }
+
+    /**
+     * Returns a parser that will parse well-formed JSON values of arbitrary depth.
+     *
+     * <p>This parser produces values (booleans, numbers, strings or nulls), collections, or maps,
+     * with the following rules:
+     *
+     * <ul>
+     *   <li>Numbers always map to {@link Double}
+     *   <li>Nulls always map to {@link Optional#empty()}
+     *   <li>Maps will always have {@link String} keys
+     *   <li>Maps will have an iteration order corresponding to the appearance of keys in the
+     *       underlying JSON.
+     *   <li>Collections will always be an {@link java.util.List}
+     *   <li>When map or collection values are maps or collections, the values are parsed using this
+     *       parser
+     * </ul>
+     */
+    public static Parser<Object> any() {
+        return AnyValueParser.INSTANCE;
+    }
+
+    /** Returns a parser that always produces an error indicating an unknown field key. */
     public static <T> Parser<T> unknownField(String field) {
         return Parsers.error("Unknown field '" + field + "'");
     }

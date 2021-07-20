@@ -1,6 +1,7 @@
 package barista.serde.runtime.parsec;
 
 import io.github.markelliot.result.Result;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class Parsers {
@@ -87,6 +88,13 @@ public final class Parsers {
                                                                     .mapResult(
                                                                             ignoredEnd -> result));
                                 });
+    }
+
+    /**
+     * Returns a parser that runs the provided parser and maps the result according to {@code fn}.
+     */
+    public static <T, U> Parser<U> composeResult(Parser<T> parser, Function<T, U> fn) {
+        return state -> parser.parse(state).mapResult(fn);
     }
 
     /** Returns a parser that always produces the provided error. */

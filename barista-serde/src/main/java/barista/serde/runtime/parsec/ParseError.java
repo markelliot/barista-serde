@@ -23,4 +23,9 @@ public record ParseError(
                 + "^".repeat(endColumnNumber > columnNumber ? 1 : 0)
                 + "\n";
     }
+
+    @Override
+    public String toString() {
+        return errorString();
+    }
 }

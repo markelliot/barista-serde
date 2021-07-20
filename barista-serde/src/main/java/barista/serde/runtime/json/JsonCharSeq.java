@@ -1,11 +1,14 @@
 package barista.serde.runtime.json;
 
+import java.util.Objects;
 import java.util.stream.IntStream;
 
 /** An alias of {@link CharSequence} representing valid, raw JSON. */
 public record JsonCharSeq(CharSequence value) implements CharSequence {
     public static final JsonCharSeq NULL = new JsonCharSeq("null");
     public static final JsonCharSeq EMPTY = new JsonCharSeq("");
+    public static final JsonCharSeq TRUE = new JsonCharSeq("true");
+    public static final JsonCharSeq FALSE = new JsonCharSeq("false");
 
     @Override
     public int length() {
@@ -39,7 +42,7 @@ public record JsonCharSeq(CharSequence value) implements CharSequence {
 
     @Override
     public boolean equals(Object obj) {
-        return value.equals(obj);
+        return (obj instanceof CharSequence other) && Objects.equals(value, other);
     }
 
     @Override

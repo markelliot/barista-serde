@@ -103,7 +103,7 @@ public final class SerDeProcessor extends AbstractProcessor {
                         element);
             } else {
                 List<? extends RecordComponentElement> recordComponents =
-                    classElement.getRecordComponents();
+                        classElement.getRecordComponents();
                 List<JsonField> fields =
                         recordComponents.stream()
                                 .map(

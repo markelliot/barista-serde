@@ -37,19 +37,19 @@ public final class JsonSerDeGenerator {
     // TODO(markelliot): some options to consider in the future (in no particular order):
     //  - field name aliases
     //  - DateTimeFormatters for date-types (and support for date types)
-    //  - modulate behavior of floating point types with values +/-Inf and NaN
     public record JsonField(String name, TypeName type) {}
 
     private JsonSerDeGenerator() {}
 
     // TODO(markelliot): some class-level options to consider in the future:
-    //  - indicate whether to throw or pass on unknown fields
-    //  - indicate how to handle missing field values (and what to do with nulls)
+    //  - whether to throw or pass on unknown fields
+    //  - how to handle missing field values (and what to do with nulls)
     //  - handle alias types
+    //  - empty record types
+    //  - whether to handle emitting optionals as nulls or to avoid emitting optionals at all
+    //  - modulate behavior of floating point types with values +/-Inf and NaN
     // TODO(markelliot): some validations here or at the call-site for this method:
     //  - map keys are String-ish or integer-ish
-    //  - optionals have only one level of nesting (Optional<Optional<Foo>> is indistinguishable
-    //    from Optional<Foo>)
     public static JavaFile generate(ClassName originalClass, List<JsonField> fields) {
         ClassName serDeClassName =
                 ClassName.get(originalClass.packageName(), originalClass.simpleName() + CLASS_EXT);
@@ -76,23 +76,23 @@ public final class JsonSerDeGenerator {
                 CodeBlock.join(
                         fields.stream()
                                 .map(
-                                        field -> {
-                                            CodeBlock parser = jsonParserCall(field.type);
-                                            return CodeBlock.builder()
-                                                    .addStatement(
-                                                            "case $S -> $L", field.name, parser)
-                                                    .build();
-                                        })
+                                        field ->
+                                                CodeBlock.builder()
+                                                        .addStatement(
+                                                                "case $S -> $L",
+                                                                field.name,
+                                                                jsonParserCall(field.type))
+                                                        .build())
                                 .toList(),
                         "");
+
         return FieldSpec.builder(
                         parserType, "PARSER", Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
                 .initializer(
                         CodeBlock.builder()
                                 .add("$T.object(field -> switch (field) {", JsonParsers.class)
                                 .add(fieldParserAssignments)
-                                .addStatement(
-                                        "default -> $T.valueConsumingParser()", JsonParsers.class)
+                                .addStatement("default -> $T.any()", JsonParsers.class)
                                 .add("},")
                                 .add("$T::map", serDeClassName)
                                 .add(")")
@@ -101,8 +101,12 @@ public final class JsonSerDeGenerator {
     }
 
     private static CodeBlock jsonParserCall(TypeName type) {
-        if (type.equals(ClassName.get(String.class))) {
-            return CodeBlock.of("$T.quotedString()", JsonParsers.class);
+        // primitives
+        if (type.equals(ClassName.get(Boolean.class)) || type.equals(TypeName.BOOLEAN)) {
+            return CodeBlock.of("$T.booleanParser()", JsonParsers.class);
+        }
+        if (type.equals(ClassName.get(Character.class)) || type.equals(TypeName.CHAR)) {
+            return CodeBlock.of("$T.charParser()", JsonParsers.class);
         }
         if (type.equals(ClassName.get(Byte.class)) || type.equals(TypeName.BYTE)) {
             return CodeBlock.of("$T.byteParser()", JsonParsers.class);
@@ -123,14 +127,26 @@ public final class JsonSerDeGenerator {
             return CodeBlock.of("$T.doubleParser()", JsonParsers.class);
         }
 
+        // non-primitive intrinsics
+        if (type.equals(ClassName.get(String.class))) {
+            return CodeBlock.of("$T.string()", JsonParsers.class);
+        }
+        if (type.equals(ClassName.get(OptionalInt.class))) {
+            return CodeBlock.of("$T.optionalInt()", JsonParsers.class);
+        }
+        if (type.equals(ClassName.get(OptionalLong.class))) {
+            return CodeBlock.of("$T.optionalLong()", JsonParsers.class);
+        }
+        if (type.equals(ClassName.get(OptionalDouble.class))) {
+            return CodeBlock.of("$T.optionalDouble()", JsonParsers.class);
+        }
+
+        // parameterized intrinsics
         if (type instanceof ParameterizedTypeName parameterizedType) {
             ClassName rawType = parameterizedType.rawType;
             if (rawType.equals(ClassName.get(Optional.class))) {
-                // TODO(markelliot): while the serializer side supports any amount of nesting
-                //  of Optionals, the deserializer side is a bit broken for Optional<Optional>
-                //  and maybe for Collection/Maps with values that are Optionals (these are, more
-                //  generally pretty broken in JSON anyway)
-                return jsonParserCall(parameterizedType.typeArguments.get(0));
+                CodeBlock valueParser = jsonParserCall(parameterizedType.typeArguments.get(0));
+                return CodeBlock.of("$T.optional($L)", JsonParsers.class, valueParser);
             }
 
             if (rawType.equals(ClassName.get(Collection.class))
@@ -142,6 +158,7 @@ public final class JsonSerDeGenerator {
                         valueParser,
                         ArrayList.class);
             }
+
             if (rawType.equals(ClassName.get(Set.class))) {
                 CodeBlock valueParser = jsonParserCall(parameterizedType.typeArguments.get(0));
                 return CodeBlock.of(
@@ -162,6 +179,8 @@ public final class JsonSerDeGenerator {
                         LinkedHashMap.class);
             }
         }
+
+        // TODO(markelliot): catch and warn on unsupported java.* types
 
         return useGeneratedParser(type);
     }
@@ -212,10 +231,7 @@ public final class JsonSerDeGenerator {
         if (f.type instanceof ParameterizedTypeName ptn
                 && ptn.rawType.equals(ClassName.get(Optional.class))) {
             return CodeBlock.of(
-                    "$T.ofNullable(($T) map.get($S))",
-                    Optional.class,
-                    ptn.typeArguments.get(0),
-                    f.name);
+                    "($T) map.getOrDefault($S, $T.empty())", f.type, f.name, Optional.class);
         }
         return CodeBlock.of("($T) map.get($S)", f.type, f.name);
     }
@@ -255,7 +271,18 @@ public final class JsonSerDeGenerator {
 
         CodeBlock.Builder cb = CodeBlock.builder();
         if (isNullable) {
-            cb.beginControlFlow("if (value.$N() != null)", field.name);
+            if ((field.type instanceof ParameterizedTypeName ptn
+                            && ptn.rawType.equals(ClassName.get(Optional.class)))
+                    || field.type.equals(ClassName.get(OptionalInt.class))
+                    || field.type.equals(ClassName.get(OptionalLong.class))
+                    || field.type.equals(ClassName.get(OptionalDouble.class))) {
+                cb.beginControlFlow(
+                        "if (value.$N() != null && value.$N().isPresent())",
+                        field.name,
+                        field.name);
+            } else {
+                cb.beginControlFlow("if (value.$N() != null)", field.name);
+            }
         }
         cb.addStatement("sj.add($S + $L)", "\"" + field.name + "\":", serializerCode);
         if (isNullable) {

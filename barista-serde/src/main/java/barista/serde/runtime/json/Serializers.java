@@ -11,8 +11,23 @@ import java.util.StringJoiner;
 import java.util.function.Function;
 
 public final class Serializers {
-
     private Serializers() {}
+
+    public static JsonCharSeq serialize(boolean value) {
+        return value ? JsonCharSeq.TRUE : JsonCharSeq.FALSE;
+    }
+
+    public static JsonCharSeq serialize(Boolean value) {
+        return value != null ? serialize(value.booleanValue()) : JsonCharSeq.NULL;
+    }
+
+    public static JsonCharSeq serialize(char value) {
+        return new JsonCharSeq(String.valueOf(value));
+    }
+
+    public static JsonCharSeq serialize(Character value) {
+        return new JsonCharSeq(String.valueOf(value));
+    }
 
     public static JsonCharSeq serialize(byte value) {
         return new JsonCharSeq(String.valueOf(value));
@@ -71,27 +86,24 @@ public final class Serializers {
 
     public static <T> JsonCharSeq serialize(
             Optional<T> optional, Function<T, JsonCharSeq> serializer) {
-        // disallow null optionals to avoid handling 3-states
+        // disallow null optionals to avoid handling a 3rd state
         Objects.requireNonNull(optional);
-        // TODO(markelliot): may want to offer some kind of selection of NULL vs. EMPTY hadnling
-        //   because this may be buggy when encountering Collection<Optional<T>> or Map<?,
-        // Optional<T>>
-        return optional.map(serializer).orElse(JsonCharSeq.EMPTY);
+        return optional.map(serializer).orElse(JsonCharSeq.NULL);
     }
 
     public static <T> JsonCharSeq serialize(OptionalInt optional) {
         Objects.requireNonNull(optional);
-        return optional.isPresent() ? serialize(optional.getAsInt()) : JsonCharSeq.EMPTY;
+        return optional.isPresent() ? serialize(optional.getAsInt()) : JsonCharSeq.NULL;
     }
 
     public static <T> JsonCharSeq serialize(OptionalLong optional) {
         Objects.requireNonNull(optional);
-        return optional.isPresent() ? serialize(optional.getAsLong()) : JsonCharSeq.EMPTY;
+        return optional.isPresent() ? serialize(optional.getAsLong()) : JsonCharSeq.NULL;
     }
 
     public static <T> JsonCharSeq serialize(OptionalDouble optional) {
         Objects.requireNonNull(optional);
-        return optional.isPresent() ? serialize(optional.getAsDouble()) : JsonCharSeq.EMPTY;
+        return optional.isPresent() ? serialize(optional.getAsDouble()) : JsonCharSeq.NULL;
     }
 
     public static <T> JsonCharSeq serialize(
