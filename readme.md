@@ -40,6 +40,6 @@ Runtime support for serializing objects to JSON and deserializing objects from J
 Serialization is mostly performed by [Serializers](/barista-serde-json/src/main/java/barista/serde/runtime/json/Serializers.java),
 which provides adapters for Java's primitive types as well as Optionals, Collections, and Maps.
 
-Deserializtion (or parsing) is mostly performed by [JsonParsers](/barista-serde-json/src/main/java/barista/serde/runtime/json/JsonParser.java),
+Deserializtion (or parsing) is mostly performed by [JsonParsers](/barista-serde-json/src/main/java/barista/serde/runtime/json/JsonParsers.java),
 which provides adapters for Java's primitive types as well as Optionals, Collections, Maps and a
 naive object-as-a-Map method.
