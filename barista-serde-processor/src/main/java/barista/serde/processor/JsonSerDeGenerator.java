@@ -34,10 +34,22 @@ import javax.lang.model.element.Modifier;
 public final class JsonSerDeGenerator {
     private static final String CLASS_EXT = "JsonSerDe";
 
+    // TODO(markelliot): some options to consider in the future (in no particular order):
+    //  - field name aliases
+    //  - DateTimeFormatters for date-types (and support for date types)
+    //  - modulate behavior of floating point types with values +/-Inf and NaN
     public record JsonField(String name, TypeName type) {}
 
     private JsonSerDeGenerator() {}
 
+    // TODO(markelliot): some class-level options to consider in the future:
+    //  - indicate whether to throw or pass on unknown fields
+    //  - indicate how to handle missing field values (and what to do with nulls)
+    //  - handle alias types
+    // TODO(markelliot): some validations here or at the call-site for this method:
+    //  - map keys are String-ish or integer-ish
+    //  - optionals have only one level of nesting (Optional<Optional<Foo>> is indistinguishable
+    //    from Optional<Foo>)
     public static JavaFile generate(ClassName originalClass, List<JsonField> fields) {
         ClassName serDeClassName =
                 ClassName.get(originalClass.packageName(), originalClass.simpleName() + CLASS_EXT);
