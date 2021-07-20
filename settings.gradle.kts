@@ -1,6 +1,7 @@
 rootProject.name = "barista-serde-root"
 
-include("barista-serde")
+include("barista-serde-parsec")
+include("barista-serde-json")
 include("barista-serde-annotations")
 include("barista-serde-processor")
 
