@@ -44,7 +44,7 @@ public final class ParseState {
 
     public void skipWhitespace() {
         while (index < seq.length() && Character.isWhitespace(seq.charAt(index))) {
-            index++;
+            index += 1;
         }
     }
 
@@ -57,7 +57,7 @@ public final class ParseState {
      * stream.
      */
     public int next() {
-        index = Math.min(index + 1, seq.length());
+        index += 1;
         return current();
     }
 

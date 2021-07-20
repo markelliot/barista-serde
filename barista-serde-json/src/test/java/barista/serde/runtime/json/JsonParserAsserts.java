@@ -13,8 +13,9 @@ final class JsonParserAsserts {
     private JsonParserAsserts() {}
 
     static <T> ObjectAssert<T> assertThatResult(Parser<T> parser, String str) {
-        return assertThat(parser.parse(ParseState.of(str))
-            .orElseThrow(err -> new IllegalStateException(err.errorString())));
+        return assertThat(
+                parser.parse(ParseState.of(str))
+                        .orElseThrow(err -> new IllegalStateException(err.errorString())));
     }
 
     static <T> OptionalAssert<String> assertThatError(Parser<T> parser, String str) {

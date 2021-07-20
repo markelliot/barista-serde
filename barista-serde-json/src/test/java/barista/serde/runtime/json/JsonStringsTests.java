@@ -7,23 +7,23 @@ import org.junit.jupiter.api.Test;
 final class JsonStringsTests {
     @Test
     public void testUnescape() {
-        assertThat(JsonStrings.unescape("")).isEqualTo("");
-        assertThat(JsonStrings.unescape("test")).isEqualTo("test");
-        assertThat(JsonStrings.unescape("\\\"")).isEqualTo("\"");
-        assertThat(JsonStrings.unescape("\\\\")).isEqualTo("\\");
-        assertThat(JsonStrings.unescape("\\/")).isEqualTo("/");
-        assertThat(JsonStrings.unescape("\\b")).isEqualTo("\b");
-        assertThat(JsonStrings.unescape("\\f")).isEqualTo("\f");
-        assertThat(JsonStrings.unescape("\\n")).isEqualTo("\n");
-        assertThat(JsonStrings.unescape("\\r")).isEqualTo("\r");
-        assertThat(JsonStrings.unescape("\\t")).isEqualTo("\t");
-        assertThat(JsonStrings.unescape("\\u0000")).isEqualTo("\0");
-        assertThat(JsonStrings.unescape("\\u0001")).isEqualTo("\1");
+        assertThat(JsonStrings.unescape("").toString()).isEqualTo("");
+        assertThat(JsonStrings.unescape("test").toString()).isEqualTo("test");
+        assertThat(JsonStrings.unescape("\\\"").toString()).isEqualTo("\"");
+        assertThat(JsonStrings.unescape("\\\\").toString()).isEqualTo("\\");
+        assertThat(JsonStrings.unescape("\\/").toString()).isEqualTo("/");
+        assertThat(JsonStrings.unescape("\\b").toString()).isEqualTo("\b");
+        assertThat(JsonStrings.unescape("\\f").toString()).isEqualTo("\f");
+        assertThat(JsonStrings.unescape("\\n").toString()).isEqualTo("\n");
+        assertThat(JsonStrings.unescape("\\r").toString()).isEqualTo("\r");
+        assertThat(JsonStrings.unescape("\\t").toString()).isEqualTo("\t");
+        assertThat(JsonStrings.unescape("\\u0000").toString()).isEqualTo("\0");
+        assertThat(JsonStrings.unescape("\\u0001").toString()).isEqualTo("\1");
     }
 
     @Test
     public void testUnescape_invalidEscapeSeq() {
-        assertThat(JsonStrings.unescape("\\k")).isEqualTo("\\k");
+        assertThat(JsonStrings.unescape("\\k").toString()).isEqualTo("\\k");
     }
 
     @Test

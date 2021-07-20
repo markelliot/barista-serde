@@ -26,12 +26,10 @@ public final class Parsers {
 
     /** Returns a parser that first consumes any whitespace characters. */
     public static <T> Parser<T> whitespace(Parser<T> parser) {
-        return prefix(whitespace(), parser);
-    }
-
-    /** Returns a parser that consumes any whitespace characters. */
-    public static Parser<Empty> whitespace() {
-        return WhitespaceParser.INSTANCE;
+        return state -> {
+            state.skipWhitespace();
+            return parser.parse(state);
+        };
     }
 
     public static Parser<Character> expect(char expectation) {

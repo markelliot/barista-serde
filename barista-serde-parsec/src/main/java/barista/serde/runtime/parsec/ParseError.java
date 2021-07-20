@@ -7,7 +7,7 @@ public record ParseError(int markIndex, int index, CharSequence seq, String mess
         // (where "adjustment" causes the error column to refer to one column past the actual
         // line length)
         if ((markIndex < seq.length() && seq.charAt(markIndex) == '\n')
-            || markIndex == seq.length()) {
+                || markIndex == seq.length()) {
             markAdjustment = 1;
         }
         int adjustedMarkIndex = Math.max(markIndex - markAdjustment, 0);
@@ -37,8 +37,7 @@ public record ParseError(int markIndex, int index, CharSequence seq, String mess
             }
         }
 
-        String context =
-            seq.subSequence(markStartLineCharIndex, markEndLineCharIndex).toString();
+        String context = seq.subSequence(markStartLineCharIndex, markEndLineCharIndex).toString();
 
         return "Parse error at line "
                 + lineNumber
