@@ -58,34 +58,29 @@ public final class Parsers {
         };
     }
 
-    public static <T> Parser<T> between(Parser<?> start, Parser<T> parser, Parser<?> end) {
-        return state ->
-                start.parse(state)
-                        .flatMapResult(ignored -> parser.parse(state))
-                        .flatMapResult(result -> end.parse(state).mapResult(ignored -> result));
-    }
-
     public static <T> Parser<T> between(
             Parser<?> start, Parser<T> parser, Parser<?> end, Supplier<T> defaultValue) {
-        Parser<?> maybeEnd = Parsers.maybe(end);
-        return state ->
-                start.parse(state)
-                        .flatMapResult(
-                                ignoredStart -> {
-                                    // if we immediately see the end, return the default value, we
-                                    // use a maybe parser to ensure we rewind because it's not an
-                                    // error to have an empty result
-                                    if (!maybeEnd.parse(state).isError()) {
-                                        return Result.ok(defaultValue.get());
-                                    }
-
-                                    return parser.parse(state)
-                                            .flatMapResult(
-                                                    result ->
-                                                            end.parse(state)
-                                                                    .mapResult(
-                                                                            ignoredEnd -> result));
-                                });
+        return state -> {
+            Result<?, ParseError> startResult = start.parse(state);
+            if (startResult.isError()) {
+                return startResult.coerce();
+            }
+            // if we immediately see the end, return the default value, we
+            // use a maybe parser to ensure we rewind because it's not an
+            // error to have an empty result
+            if (!Parsers.maybe(end).parse(state).isError()) {
+                return Result.ok(defaultValue.get());
+            }
+            Result<T, ParseError> result = parser.parse(state);
+            if (result.isError()) {
+                return result;
+            }
+            Result<?, ParseError> endResult = end.parse(state);
+            if (endResult.isError()) {
+                return endResult.coerce();
+            }
+            return result;
+        };
     }
 
     /**

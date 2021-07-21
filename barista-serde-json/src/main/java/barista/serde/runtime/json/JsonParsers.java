@@ -7,7 +7,6 @@ import barista.serde.runtime.parsec.Parser;
 import barista.serde.runtime.parsec.Parsers;
 import io.github.markelliot.result.Result;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -156,7 +155,7 @@ public final class JsonParsers {
                     break;
                 }
             }
-            return Result.ok(Collections.unmodifiableMap(map));
+            return Result.ok(map);
         };
     }
 
