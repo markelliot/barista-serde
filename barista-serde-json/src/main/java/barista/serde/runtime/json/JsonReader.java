@@ -119,20 +119,26 @@ public final class JsonReader {
     private static Result<String, Error> readString(State state) {
         state.next(); // first quote
         int start = state.index;
+        boolean isAscii = true;
+        boolean hasEscapes = false;
         while (state.hasMore()) {
             if (state.current() == '"') {
                 break;
             } else if (state.current() == '\\') {
+                hasEscapes = true;
                 // skip the next byte, too
                 state.next(2);
-            } else {
-                state.next();
+            } else if ((state.current() & 0x80) != 0) {
+                isAscii = false;
             }
+            state.next();
         }
         if (!state.hasMore()) {
             return Result.error(new Error());
         }
-        return Result.ok(new String(state.bytes, start, state.index - start, StandardCharsets.UTF_8));
+        String result = new String(state.bytes, start, state.index - start,
+            isAscii ? StandardCharsets.US_ASCII : StandardCharsets.UTF_8);
+        return Result.ok(hasEscapes ? JsonStrings.unescape(result).toString() : result);
     }
 
     private static Result<Boolean, Error> readTrue(State state) {

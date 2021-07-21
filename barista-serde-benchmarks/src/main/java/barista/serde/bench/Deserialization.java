@@ -46,48 +46,28 @@ public class Deserialization {
     private final String apacheBuilds = readResource("/apache_builds.json");
     private final String twitter = readResource("/twitter.json");
 
-    private final char[] apacheBuilds_chars = apacheBuilds.toCharArray();
     private final byte[] apacheBuilds_bytes = apacheBuilds.getBytes(StandardCharsets.UTF_8);
+    private final byte[] twitter_bytes = twitter.getBytes(StandardCharsets.UTF_8);
 
     @Benchmark
-    public Object asfadsf() {
+    public Object barista_jsonReader_apacheBuilds() {
         return JsonReader.any(apacheBuilds_bytes);
     }
 
     @Benchmark
-    public Object barista_parseState_charSequence(Blackhole bh) {
-        CharSequence chars = apacheBuilds;
-        for (int i = 0; i < chars.length(); i++) {
-            bh.consume(chars.charAt(i));
-        }
-        return null;
+    public Object barista_jsonReader_twitter() {
+        return JsonReader.any(twitter_bytes);
     }
 
-    @Benchmark
-    public Object barista_parseState_foo(Blackhole bh) {
-        ParseState state = ParseState.of(apacheBuilds);
-        while (!state.isEndOfStream()) {
-            bh.consume(state.current());
-            state.next();
-        }
-        return null;
-    }
-
-    @Benchmark
-    public Object barista_readGenericObject_apacheBuilds() {
-        return JsonParsers.any().parse(new ParseState(apacheBuilds_chars)).unwrap();
-    }
-
-    @Benchmark
-    public Object barista_readMappedObj_apacheBuilds() {
-        // return ApacheBuildsJsonSerDe.deserialize(new JsonCharSeq(apacheBuilds)).unwrap();
-        return null;
-    }
-
-    @Benchmark
-    public Object barista_readGenericObject_twitter() {
-        return JsonParsers.any().parse(ParseState.of(twitter)).unwrap();
-    }
+//    @Benchmark
+//    public Object barista_jsonParsers_apacheBuilds() {
+//        return JsonParsers.any().parse(ParseState.of(apacheBuilds)).unwrap();
+//    }
+//
+//    @Benchmark
+//    public Object barista_jsonParsers_twitter() {
+//        return JsonParsers.any().parse(ParseState.of(twitter)).unwrap();
+//    }
 
     private final ObjectMapper mapper =
             new ObjectMapper()
@@ -99,13 +79,8 @@ public class Deserialization {
                     .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     @Benchmark
-    public Object jackson_readGenericObject_apacheBuilds() throws JsonProcessingException {
+    public Object jackson_apacheBuilds() throws JsonProcessingException {
         return mapper.readValue(apacheBuilds, new TypeReference<Object>() {});
-    }
-
-    @Benchmark
-    public Object jackson_readMappedObject_apacheBuilds() throws JsonProcessingException {
-        return mapper.readValue(apacheBuilds, ApacheBuilds.class);
     }
 
     @Benchmark
@@ -117,7 +92,7 @@ public class Deserialization {
         Options opt =
                 new OptionsBuilder()
                         // .include(Deserialization.class.getSimpleName())
-                        .include("asfadsf")
+                        .include("twitter")
                         .forks(1)
                         .build();
         new Runner(opt).run();
