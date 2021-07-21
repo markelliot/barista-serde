@@ -50,7 +50,7 @@ public class Deserialization {
     private final byte[] apacheBuilds_bytes = apacheBuilds.getBytes(StandardCharsets.UTF_8);
 
     @Benchmark
-    public Object asfadsf(Blackhole bh) {
+    public Object asfadsf() {
         return JsonReader.any(apacheBuilds_bytes);
     }
 

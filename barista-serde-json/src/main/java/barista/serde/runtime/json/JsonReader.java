@@ -11,75 +11,83 @@ import java.util.Optional;
 public final class JsonReader {
     private JsonReader() {}
 
-    public static Result<? extends Object, Error> any(byte[] bytes) {
+    public static Result<?, Error> any(byte[] bytes) {
         return any(new State(bytes));
     }
 
-    public static Result<? extends Object, Error> any(State state) {
-        while (state.hasMore()) {
-            if (isWhitespace(state.current())) {
-                state.next();
-            } else if (state.current() == '{') {
-                return readObject(state);
-            } else if (state.current() == '[') {
-                return readArray(state);
-            } else if (state.current() == '"') {
-                return readString(state);
-            } else if (state.current() == 't') {
-                return readTrue(state);
-            } else if (state.current() == 'f') {
-                return readFalse(state);
-            } else if (state.current() == 'n') {
-                return readNull(state);
-            } else {
-                return readNumber(state);
-            }
+    public static Result<Map<String, Object>, Error> map(byte[] bytes) {
+        return readObject(new State(bytes));
+    }
+
+    public static Result<?, Error> any(State state) {
+        whitespace(state);
+        if (state.current() == '{') {
+            return readObject(state);
+        } else if (state.current() == '[') {
+            return readArray(state);
+        } else if (state.current() == '"') {
+            return readString(state);
+        } else if (state.current() == 't') {
+            return readTrue(state);
+        } else if (state.current() == 'f') {
+            return readFalse(state);
+        } else if (state.current() == 'n') {
+            return readNull(state);
+        } else {
+            return readNumber(state);
         }
-        return Result.error(new Error());
     }
 
     private static Result<Map<String, Object>, Error> readObject(State state) {
         state.next(); // '{'
+
+        // try to short-circuit
+        whitespace(state);
+        if (state.current() == '}') {
+            return Result.ok(Map.of());
+        }
+
         Map<String, Object> map = new LinkedHashMap<>();
         while (state.hasMore()) {
-            if (isWhitespace(state.current())) {
-                // skip
-            } else if (state.current() == '}') {
-                // end of object
-                break;
-            } else {
-                // read field
-                Result<String, Error> maybeField = readString(state);
-                if (maybeField.isError()) {
-                    return maybeField.coerce();
-                }
-                String field = maybeField.unwrap();
-                state.next();
+            // read field
+            Result<String, Error> maybeField = readString(state);
+            if (maybeField.isError()) {
+                state.fail();
+                return maybeField.coerce();
+            }
+            String field = maybeField.unwrap();
+            state.next();
 
-                // skip some amount of whitespace
-                whitespace(state);
-                if (state.current() != ':') {
-                    state.fail();
-                    return Result.error(new Error());
-                }
-                state.next();
+            // skip some amount of whitespace
+            whitespace(state);
 
-                // read value (value reader consumes whitespace)
-                any(state).mapResult(value -> {
-                    map.put(field, value);
-                    return value;
-                });
-                state.next();
-
-                whitespace(state);
-                if (state.current() == '}') {
-                    break;
-                } else if (state.current() != ',') {
-                    state.fail();
-                    return Result.error(new Error());
-                }
+            // check for a ':'
+            if (state.current() != ':') {
+                state.fail();
+                return Result.error(new Error());
             }
             state.next();
+
+            // read value (value reader consumes whitespace)
+            Result<?, Error> maybeValue = any(state);
+            if (maybeValue.isError()) {
+                return maybeValue.coerce();
+            }
+            map.put(field, maybeValue.unwrap());
+            state.next();
+
+            whitespace(state);
+            if (state.current() == '}') {
+                break;
+            } else if (state.current() != ',') {
+                state.fail();
+                return Result.error(new Error());
+            }
+            state.next();
+            whitespace(state);
+        }
+        if (!state.hasMore()) {
+            return Result.error(new Error());
         }
         return Result.ok(map);
     }
@@ -105,7 +113,6 @@ public final class JsonReader {
             state.next();
         }
         if (!state.hasMore()) {
-            state.fail();
             return Result.error(new Error());
         }
         return Result.ok(items);
@@ -125,7 +132,6 @@ public final class JsonReader {
             }
         }
         if (!state.hasMore()) {
-            state.fail();
             return Result.error(new Error());
         }
         return Result.ok(new String(state.bytes, start, state.index - start, StandardCharsets.UTF_8));
@@ -133,6 +139,7 @@ public final class JsonReader {
 
     private static Result<Boolean, Error> readTrue(State state) {
         if (state.has(3)
+            && state.current() == 't'
             && state.peekAt(1) == 'r'
             && state.peekAt(2) == 'u'
             && state.peekAt(3) == 'e') {
@@ -145,6 +152,7 @@ public final class JsonReader {
 
     private static Result<Boolean, Error> readFalse(State state) {
         if (state.has(4)
+            && state.current() == 'f'
             && state.peekAt(1) == 'a'
             && state.peekAt(2) == 'l'
             && state.peekAt(3) == 's'
@@ -158,6 +166,7 @@ public final class JsonReader {
 
     private static Result<Optional<?>, Error> readNull(State state) {
         if (state.has(3)
+            && state.current() == 'n'
             && state.peekAt(1) == 'u'
             && state.peekAt(2) == 'l'
             && state.peekAt(3) == 'l') {
