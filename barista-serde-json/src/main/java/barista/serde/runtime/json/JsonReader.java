@@ -101,7 +101,7 @@ public final class JsonReader {
     private static Result<List<Object>, Error> readArray(State state) {
         state.next(); // '['
         List<Object> items = new ArrayList<>();
-        while(state.hasMore()) {
+        while (state.hasMore()) {
             if (state.current() == ']') {
                 // end of array
                 break;
@@ -136,17 +136,21 @@ public final class JsonReader {
         if (!state.hasMore()) {
             return Result.error(new Error());
         }
-        String result = new String(state.bytes, start, state.index - start,
-            isAscii ? StandardCharsets.US_ASCII : StandardCharsets.UTF_8);
+        String result =
+                new String(
+                        state.bytes,
+                        start,
+                        state.index - start,
+                        isAscii ? StandardCharsets.US_ASCII : StandardCharsets.UTF_8);
         return Result.ok(hasEscapes ? JsonStrings.unescape(result).toString() : result);
     }
 
     private static Result<Boolean, Error> readTrue(State state) {
         if (state.has(3)
-            && state.current() == 't'
-            && state.peekAt(1) == 'r'
-            && state.peekAt(2) == 'u'
-            && state.peekAt(3) == 'e') {
+                && state.current() == 't'
+                && state.peekAt(1) == 'r'
+                && state.peekAt(2) == 'u'
+                && state.peekAt(3) == 'e') {
             state.next(3);
             return Result.ok(Boolean.FALSE);
         }
@@ -156,11 +160,11 @@ public final class JsonReader {
 
     private static Result<Boolean, Error> readFalse(State state) {
         if (state.has(4)
-            && state.current() == 'f'
-            && state.peekAt(1) == 'a'
-            && state.peekAt(2) == 'l'
-            && state.peekAt(3) == 's'
-            && state.peekAt(4) == 'e') {
+                && state.current() == 'f'
+                && state.peekAt(1) == 'a'
+                && state.peekAt(2) == 'l'
+                && state.peekAt(3) == 's'
+                && state.peekAt(4) == 'e') {
             state.next(4);
             return Result.ok(Boolean.FALSE);
         }
@@ -170,10 +174,10 @@ public final class JsonReader {
 
     private static Result<Optional<?>, Error> readNull(State state) {
         if (state.has(3)
-            && state.current() == 'n'
-            && state.peekAt(1) == 'u'
-            && state.peekAt(2) == 'l'
-            && state.peekAt(3) == 'l') {
+                && state.current() == 'n'
+                && state.peekAt(1) == 'u'
+                && state.peekAt(2) == 'l'
+                && state.peekAt(3) == 'l') {
             state.next(3);
             return Result.ok(Optional.empty());
         }
@@ -188,10 +192,13 @@ public final class JsonReader {
         }
         state.prev(); // walk backwards because we saw the boundary char
         try {
-            return Result.ok(Double.parseDouble(new String(
-                state.bytes, start,
-                state.index - start + 1,
-                StandardCharsets.UTF_8)));
+            return Result.ok(
+                    Double.parseDouble(
+                            new String(
+                                    state.bytes,
+                                    start,
+                                    state.index - start + 1,
+                                    StandardCharsets.UTF_8)));
         } catch (RuntimeException e) {
             return Result.error(new Error());
         }
@@ -199,7 +206,11 @@ public final class JsonReader {
 
     private static boolean isValueBoundary(byte val) {
         return isWhitespace(val)
-            || val == '[' || val == ']' || val == '{' || val == '}' || val == ',';
+                || val == '['
+                || val == ']'
+                || val == '{'
+                || val == '}'
+                || val == ',';
     }
 
     private static boolean isWhitespace(byte val) {
