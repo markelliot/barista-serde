@@ -153,7 +153,7 @@ public final class JsonSerDeGenerator {
                     || rawType.equals(ClassName.get(List.class))) {
                 CodeBlock valueParser = jsonParserCall(parameterizedType.typeArguments.get(0));
                 return CodeBlock.of(
-                        "$T.collection($L, $T::new",
+                        "$T.collection($L, $T::new)",
                         JsonParsers.class,
                         valueParser,
                         ArrayList.class);
@@ -162,7 +162,7 @@ public final class JsonSerDeGenerator {
             if (rawType.equals(ClassName.get(Set.class))) {
                 CodeBlock valueParser = jsonParserCall(parameterizedType.typeArguments.get(0));
                 return CodeBlock.of(
-                        "$T.collection($L, $T::new",
+                        "$T.collection($L, $T::new)",
                         JsonParsers.class,
                         valueParser,
                         LinkedHashSet.class);
