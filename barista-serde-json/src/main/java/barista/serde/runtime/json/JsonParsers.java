@@ -1,11 +1,9 @@
 package barista.serde.runtime.json;
 
 import barista.serde.runtime.parsec.Empty;
-import barista.serde.runtime.parsec.ParseError;
 import barista.serde.runtime.parsec.ParseState;
 import barista.serde.runtime.parsec.Parser;
 import barista.serde.runtime.parsec.Parsers;
-import io.github.markelliot.result.Result;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -90,26 +88,7 @@ public final class JsonParsers {
 
     private static <T, C extends Collection<T>> Parser<C> collectionInternal(
             Parser<T> itemParser, Supplier<C> collectionFactory) {
-        return state -> {
-            C collection = collectionFactory.get();
-            while (!state.isEndOfStream()) {
-                state.skipWhitespace();
-
-                Result<T, ParseError> item = itemParser.parse(state);
-                if (item.isError()) {
-                    return item.coerce();
-                }
-                item.mapResult(collection::add);
-
-                state.skipWhitespace();
-                if (state.current() == ',') {
-                    state.next(); // consume ','
-                } else {
-                    break;
-                }
-            }
-            return Result.ok(collection);
-        };
+        return new CollectionInternalParser<>(itemParser, collectionFactory);
     }
 
     public static <K, V> Parser<Map<K, V>> map(
