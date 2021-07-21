@@ -13,17 +13,23 @@ final class QuotedStringParser implements Parser<String> {
 
     @Override
     public Result<String, ParseError> parse(ParseState state) {
-        int current = state.current();
-        if (current != '"') {
+        if (state.current() != '"') {
             return Result.error(
                     state.mark().error("Expected a quoted string and did not find a quote"));
         }
-        current = state.next();
-
+        int current = state.next();
         Mark start = state.mark();
-        int last = -1;
-        while (current != ParseState.EOS && !(current == '"' && last != '\\')) {
-            last = current;
+        boolean escaped = false;
+        while (current != ParseState.EOS) {
+            if (!escaped) {
+                if (current == '\\') {
+                    escaped = true;
+                } else if (current == '"') {
+                    break;
+                }
+            } else {
+                escaped = false;
+            }
             current = state.next();
         }
         if (state.isEndOfStream()) {

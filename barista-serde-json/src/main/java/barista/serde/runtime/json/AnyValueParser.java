@@ -25,11 +25,11 @@ final class AnyValueParser implements Parser<Object> {
 
         Parser<?> valueParser =
                 switch (state.current()) {
-                    case '"' -> JsonParsers.string();
-                    case '[' -> JsonParsers.collection(this, ArrayList::new);
                     case '{' -> JsonParsers.map(Function.identity(), this, LinkedHashMap::new);
-                    case 't', 'f' -> JsonParsers.booleanParser();
+                    case '[' -> JsonParsers.collection(this, ArrayList::new);
+                    case '"' -> JsonParsers.string();
                     case 'n' -> EMPTY;
+                    case 't', 'f' -> JsonParsers.booleanParser();
                     default -> JsonParsers.doubleParser();
                 };
 

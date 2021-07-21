@@ -75,7 +75,7 @@ public final class JsonParsers {
         return OptionalParser.DOUBLE;
     }
 
-    private static Parser<Empty> keyValueSeparator() {
+    static Parser<Empty> keyValueSeparator() {
         return KeyValueSeparatorParser.INSTANCE;
     }
 
@@ -84,7 +84,7 @@ public final class JsonParsers {
         return Parsers.between(
                 Parsers.expect('['),
                 collectionInternal(itemParser, collectionFactory),
-                Parsers.whitespace(Parsers.expect(']')),
+                Parsers.expect(']'),
                 collectionFactory);
     }
 
@@ -117,7 +117,7 @@ public final class JsonParsers {
         return Parsers.between(
                 Parsers.expect('{'),
                 mapInternal(keyFn, ignored -> itemParser, mapFactory),
-                Parsers.whitespace(Parsers.expect('}')),
+                Parsers.expect('}'),
                 mapFactory);
     }
 
@@ -125,38 +125,7 @@ public final class JsonParsers {
             Function<String, K> keyFn,
             Function<K, Parser<V>> itemParser,
             Supplier<Map<K, V>> mapFactory) {
-        return state -> {
-            Map<K, V> map = mapFactory.get();
-            while (!state.isEndOfStream()) {
-                state.skipWhitespace();
-                Result<K, ParseError> key = string().parse(state).mapResult(keyFn);
-                if (key.isError()) {
-                    return key.coerce();
-                }
-
-                Result<Empty, ParseError> sep = keyValueSeparator().parse(state);
-                if (sep.isError()) {
-                    return sep.coerce();
-                }
-
-                K realKey = key.unwrap();
-                Result<V, ParseError> item = itemParser.apply(realKey).parse(state);
-                if (item.isError()) {
-                    return item.coerce();
-                }
-
-                map.put(realKey, item.unwrap());
-
-                // consume trailing whitespace
-                state.skipWhitespace();
-                if (state.current() == ',') {
-                    state.next(); // consume ','
-                } else {
-                    break;
-                }
-            }
-            return Result.ok(map);
-        };
+        return new MapInternalParser<>(keyFn, itemParser, mapFactory);
     }
 
     /**
@@ -212,7 +181,7 @@ public final class JsonParsers {
                         Function.identity(),
                         field -> Parsers.composeResult(fieldToParser.apply(field), r -> (Object) r),
                         HashMap::new),
-                Parsers.whitespace(Parsers.expect('}')),
+                Parsers.expect('}'),
                 Map::of);
     }
 

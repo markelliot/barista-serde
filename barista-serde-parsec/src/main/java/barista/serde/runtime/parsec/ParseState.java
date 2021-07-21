@@ -43,9 +43,8 @@ public final class ParseState {
     }
 
     public void skipWhitespace() {
-        while (index < seq.length() && Character.isWhitespace(seq.charAt(index))) {
-            index += 1;
-        }
+        for (; index < seq.length() && Character.isWhitespace(seq.charAt(index)); index++)
+            ;
     }
 
     public boolean isEndOfStream() {
@@ -61,6 +60,13 @@ public final class ParseState {
         return current();
     }
 
+    public int last() {
+        if (index == 0) {
+            return EOS;
+        }
+        return seq.charAt(index - 1);
+    }
+
     /** Returns a pointer to the current index. */
     public Mark mark() {
         return new Mark(index);
@@ -73,6 +79,10 @@ public final class ParseState {
 
     public CharSequence slice(Mark from) {
         return seq.subSequence(from.markIndex, index);
+    }
+
+    public CharSequence slice(Mark from, int endOffset) {
+        return seq.subSequence(from.markIndex, index + endOffset);
     }
 
     public final class Mark {

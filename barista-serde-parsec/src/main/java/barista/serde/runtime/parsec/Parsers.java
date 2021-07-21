@@ -10,18 +10,7 @@ public final class Parsers {
 
     /** Returns a parser that rewinds state if in error. */
     public static <T> Parser<T> maybe(Parser<T> parser) {
-        return state -> {
-            ParseState.Mark pos = state.mark();
-            Result<T, ParseError> result = parser.parse(state);
-            if (result.isError()) {
-                state.rewind(pos);
-            }
-            return result;
-        };
-    }
-
-    public static <T> Parser<T> prefix(Parser<?> prefix, Parser<T> andThen) {
-        return state -> prefix.parse(state).flatMapResult(ignored -> andThen.parse(state));
+        return new MaybeParser<>(parser);
     }
 
     /** Returns a parser that first consumes any whitespace characters. */
@@ -33,13 +22,7 @@ public final class Parsers {
     }
 
     public static Parser<Character> expect(char expectation) {
-        return state -> {
-            if (state.current() == expectation) {
-                state.next(); // consume the expected char
-                return Result.ok(expectation);
-            }
-            return Result.error(state.mark().error("Expected to find '" + expectation + "'"));
-        };
+        return new ExpectParser(expectation);
     }
 
     public static Parser<String> expect(String expectation) {
@@ -60,27 +43,7 @@ public final class Parsers {
 
     public static <T> Parser<T> between(
             Parser<?> start, Parser<T> parser, Parser<?> end, Supplier<T> defaultValue) {
-        return state -> {
-            Result<?, ParseError> startResult = start.parse(state);
-            if (startResult.isError()) {
-                return startResult.coerce();
-            }
-            // if we immediately see the end, return the default value, we
-            // use a maybe parser to ensure we rewind because it's not an
-            // error to have an empty result
-            if (!Parsers.maybe(end).parse(state).isError()) {
-                return Result.ok(defaultValue.get());
-            }
-            Result<T, ParseError> result = parser.parse(state);
-            if (result.isError()) {
-                return result;
-            }
-            Result<?, ParseError> endResult = end.parse(state);
-            if (endResult.isError()) {
-                return endResult.coerce();
-            }
-            return result;
-        };
+        return new BetweenParser<>(start, parser, end, defaultValue);
     }
 
     /**
