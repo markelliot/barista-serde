@@ -1,184 +1,177 @@
 package barista.serde.runtime.json;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class JsonReader {
     private JsonReader() {}
 
-    public static int any(byte[] bytes) {
-        int last = any(bytes, 0);
-        // System.out.println("Finished parsing at " + last + " of " + (bytes.length - 1));
-        return last;
+    public static Object any(byte[] bytes) {
+        return any(new State(bytes));
     }
 
-    public static int any(byte[] bytes, int oldIndex) {
-        int index = oldIndex;
-        while (index < bytes.length) {
-            if (isWhitespace(bytes[index])) {
-                // whitespace
-                index += 1;
-            } else if (bytes[index] == '{') {
-                // start obj
-                // System.out.println("start obj " + index);
-                index = readObject(bytes, index);
-                // System.out.println("end obj " + index);
-                return index;
-            } else if (bytes[index] == '[') {
-                // start array
-                // System.out.println("start arr " + index);
-                index = readArray(bytes, index);
-                // System.out.println("end   arr " + index);
-                return index;
-            } else if (bytes[index] == '"') {
-                // start string
-                // System.out.println("start str " + index);
-                index = readString(bytes, index);
-                // System.out.println("end   str " + index);
-                return index;
-            } else if (bytes[index] == 't') {
-                // true
-                // System.out.println("start tru " + index);
-                index = readTrue(bytes, index);
-                // System.out.println("end   tru " + index);
-                return index;
-            } else if (bytes[index] == 'f') {
-                // false
-                // System.out.println("start fal " + index);
-                index = readFalse(bytes, index);
-                // System.out.println("end   fal " + index);
-                return index;
-            } else if (bytes[index] == 'n') {
-                // null
-                // System.out.println("start nul " + index);
-                index = readNull(bytes, index);
-                // System.out.println("end   nul " + index);
-                return index;
+    public static Object any(State state) {
+        while (state.hasMore()) {
+            if (isWhitespace(state.current())) {
+                state.next();
+            } else if (state.current() == '{') {
+                return readObject(state);
+            } else if (state.current() == '[') {
+                return readArray(state);
+            } else if (state.current() == '"') {
+                return readString(state);
+            } else if (state.current() == 't') {
+                return readTrue(state);
+            } else if (state.current() == 'f') {
+                return readFalse(state);
+            } else if (state.current() == 'n') {
+                return readNull(state);
             } else {
-                // try it as a number
-                // System.out.println("start num " + index);
-                index = readNumber(bytes, index);
-                // System.out.println("end   num " + index);
-                return index;
+                return readNumber(state);
             }
         }
-        return index;
+        return new Error();
     }
 
-    private static int readObject(byte[] bytes, int index) {
-        int newIndex = index + 1;
-        while (newIndex < bytes.length) {
-            if (isWhitespace(bytes[newIndex])) {
+    private static Object readObject(State state) {
+        state.next(); // '{'
+        Map<String, Object> map = new LinkedHashMap<>();
+        while (state.hasMore()) {
+            if (isWhitespace(state.current())) {
                 // skip
-            } else if (bytes[newIndex] == '}') {
+            } else if (state.current() == '}') {
                 // end of object
                 break;
             } else {
                 // read field
-                // System.out.println("  obj field start " + newIndex);
-                newIndex = readString(bytes, newIndex) + 1;
-                // System.out.println("  obj field end   " + newIndex);
+                String field = (String) readString(state);
+                state.next();
+
                 // skip some amount of whitespace
-                newIndex = whitespace(bytes, newIndex);
-                if (bytes[newIndex] != ':') {
-                    // System.out.println("expected ':' but didn't find one");
-                    // fail
-                    return bytes.length;
+                whitespace(state);
+                if (state.current() != ':') {
+                    state.fail();
+                    return new Error();
                 }
+                state.next();
 
                 // read value (value reader consumes whitespace)
-                newIndex = any(bytes, newIndex + 1) + 1;
+                Object value = any(state);
+                state.next();
 
-                newIndex = whitespace(bytes, newIndex);
-                if (bytes[newIndex] == '}') {
+                map.put(field, value);
+
+                whitespace(state);
+                if (state.current() == '}') {
                     break;
-                } else if (bytes[newIndex] != ',') {
-                    // System.out.println("expected ',' but didn't find either");
-                    return bytes.length;
+                } else if (state.current() != ',') {
+                    state.fail();
+                    return new Error();
                 }
             }
-            newIndex += 1;
+            state.next();
         }
-        return newIndex;
+        return map;
     }
 
-    private static int whitespace(byte[] bytes, int oldIndex) {
-        int index = oldIndex;
-        while (index < bytes.length && isWhitespace(bytes[index])) {
-            index += 1;
+    private static void whitespace(State state) {
+        while (state.hasMore() && isWhitespace(state.current())) {
+            state.next();
         }
-        return index;
     }
 
-    private static int readArray(byte[] bytes, int index) {
-        int newIndex = index + 1;
-        while(newIndex < bytes.length) {
-            if (isWhitespace(bytes[newIndex]) || bytes[newIndex] == ',') {
+    private static Object readArray(State state) {
+        state.next(); // '['
+        List<Object> items = new ArrayList<>();
+        while(state.hasMore()) {
+            if (isWhitespace(state.current()) || state.current() == ',') {
                 // skip
-            } else if (bytes[newIndex] == ']') {
+            } else if (state.current() == ']') {
                 // end of array
                 break;
             } else {
-                // System.out.println("  array entry " + arrayEntry);
-                newIndex = any(bytes, newIndex);
+                items.add(any(state));
             }
-            newIndex += 1;
+            state.next();
         }
-        return newIndex;
+        return items;
     }
 
-    private static int readString(byte[] bytes, int index) {
-        int newIndex = index + 1;
-        while (newIndex < bytes.length) {
-            if (bytes[newIndex] == '"') {
+    private static Object readString(State state) {
+        state.next(); // first quote
+        int start = state.index;
+        while (state.hasMore()) {
+            if (state.current() == '"') {
                 break;
-            } else if (bytes[newIndex] == '\\') {
+            } else if (state.current() == '\\') {
                 // skip the next byte, too
-                newIndex += 2;
+                state.next(2);
             } else {
-                newIndex += 1;
+                state.next();
             }
         }
-        // System.out.println(new String(bytes, index, newIndex - index + 1, StandardCharsets.UTF_8));
-        return newIndex;
+        if (!state.hasMore()) {
+            state.fail();
+            return new Error();
+        }
+        return new String(state.bytes, start, state.index - start, StandardCharsets.UTF_8);
     }
 
-    private static int readTrue(byte[] bytes, int index) {
-        if (index + 3 < bytes.length
-            && bytes[index + 1] == 'r'
-            && bytes[index + 2] == 'u'
-            && bytes[index + 3] == 'e') {
-            return index + 3;
+    private static Object readTrue(State state) {
+        if (state.has(3)
+            && state.peekAt(1) == 'r'
+            && state.peekAt(2) == 'u'
+            && state.peekAt(3) == 'e') {
+            state.next(3);
+            return Boolean.FALSE;
         }
-        return bytes.length;
+        state.fail();
+        return new Error();
     }
 
-    private static int readFalse(byte[] bytes, int index) {
-        if (index + 4 < bytes.length
-            && bytes[index + 1] == 'a'
-            && bytes[index + 2] == 'l'
-            && bytes[index + 3] == 's'
-            && bytes[index + 4] == 'e') {
-            return index + 4;
+    private static Object readFalse(State state) {
+        if (state.has(4)
+            && state.peekAt(1) == 'a'
+            && state.peekAt(2) == 'l'
+            && state.peekAt(3) == 's'
+            && state.peekAt(4) == 'e') {
+            state.next(4);
+            return Boolean.FALSE;
         }
-        return bytes.length;
+        state.fail();
+        return new Error();
     }
 
-    private static int readNull(byte[] bytes, int index) {
-        if (index + 3 < bytes.length
-            && bytes[index + 1] == 'u'
-            && bytes[index + 2] == 'l'
-            && bytes[index + 3] == 'l') {
-            return index + 3;
+    private static Object readNull(State state) {
+        if (state.has(3)
+            && state.peekAt(1) == 'u'
+            && state.peekAt(2) == 'l'
+            && state.peekAt(3) == 'l') {
+            state.next(3);
+            return null;
         }
-        return bytes.length;
+        state.fail();
+        return new Error();
     }
 
-    private static int readNumber(byte[] bytes, int index) {
-        int newIndex = index;
-        while (newIndex < bytes.length && !isValueBoundary(bytes[newIndex])) {
-            newIndex += 1;
+    private static Object readNumber(State state) {
+        int start = state.index;
+        while (state.hasMore() && !isValueBoundary(state.current())) {
+            state.next();
         }
-        return newIndex - 1;
+        state.prev(); // walk backwards because we saw the boundary char
+        try {
+            return Double.parseDouble(new String(
+                state.bytes, start,
+                state.index - start + 1,
+                StandardCharsets.UTF_8));
+        } catch (RuntimeException e) {
+            state.fail();
+            return new Error();
+        }
     }
 
     private static boolean isValueBoundary(byte val) {
@@ -189,4 +182,49 @@ public final class JsonReader {
     private static boolean isWhitespace(byte val) {
         return val == ' ' || val == '\n' || val == '\r' || val == '\t';
     }
+
+    private static final class State {
+        private final byte[] bytes;
+        private int index;
+
+        State(byte[] bytes) {
+            this.bytes = bytes;
+            this.index = 0;
+        }
+
+        boolean hasMore() {
+            return index < bytes.length;
+        }
+
+        boolean has(int howManyMore) {
+            return index + howManyMore < bytes.length;
+        }
+
+        byte current() {
+            return bytes[index];
+        }
+
+        void prev() {
+            index -= 1;
+        }
+
+        void next() {
+            index += 1;
+        }
+
+        void next(int offset) {
+            index += offset;
+        }
+
+        byte peekAt(int offset) {
+            return bytes[index + offset];
+        }
+
+        void fail() {
+            // set failure by moving index to the end
+            this.index = bytes.length;
+        }
+    }
+
+    public record Error() {}
 }
