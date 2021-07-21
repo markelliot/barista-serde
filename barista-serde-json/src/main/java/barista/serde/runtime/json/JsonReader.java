@@ -1,19 +1,21 @@
 package barista.serde.runtime.json;
 
+import io.github.markelliot.result.Result;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public final class JsonReader {
     private JsonReader() {}
 
-    public static Object any(byte[] bytes) {
+    public static Result<? extends Object, Error> any(byte[] bytes) {
         return any(new State(bytes));
     }
 
-    public static Object any(State state) {
+    public static Result<? extends Object, Error> any(State state) {
         while (state.hasMore()) {
             if (isWhitespace(state.current())) {
                 state.next();
@@ -33,10 +35,10 @@ public final class JsonReader {
                 return readNumber(state);
             }
         }
-        return new Error();
+        return Result.error(new Error());
     }
 
-    private static Object readObject(State state) {
+    private static Result<Map<String, Object>, Error> readObject(State state) {
         state.next(); // '{'
         Map<String, Object> map = new LinkedHashMap<>();
         while (state.hasMore()) {
@@ -47,34 +49,39 @@ public final class JsonReader {
                 break;
             } else {
                 // read field
-                String field = (String) readString(state);
+                Result<String, Error> maybeField = readString(state);
+                if (maybeField.isError()) {
+                    return maybeField.coerce();
+                }
+                String field = maybeField.unwrap();
                 state.next();
 
                 // skip some amount of whitespace
                 whitespace(state);
                 if (state.current() != ':') {
                     state.fail();
-                    return new Error();
+                    return Result.error(new Error());
                 }
                 state.next();
 
                 // read value (value reader consumes whitespace)
-                Object value = any(state);
+                any(state).mapResult(value -> {
+                    map.put(field, value);
+                    return value;
+                });
                 state.next();
-
-                map.put(field, value);
 
                 whitespace(state);
                 if (state.current() == '}') {
                     break;
                 } else if (state.current() != ',') {
                     state.fail();
-                    return new Error();
+                    return Result.error(new Error());
                 }
             }
             state.next();
         }
-        return map;
+        return Result.ok(map);
     }
 
     private static void whitespace(State state) {
@@ -83,7 +90,7 @@ public final class JsonReader {
         }
     }
 
-    private static Object readArray(State state) {
+    private static Result<List<Object>, Error> readArray(State state) {
         state.next(); // '['
         List<Object> items = new ArrayList<>();
         while(state.hasMore()) {
@@ -93,14 +100,18 @@ public final class JsonReader {
                 // end of array
                 break;
             } else {
-                items.add(any(state));
+                any(state).mapResult(items::add);
             }
             state.next();
         }
-        return items;
+        if (!state.hasMore()) {
+            state.fail();
+            return Result.error(new Error());
+        }
+        return Result.ok(items);
     }
 
-    private static Object readString(State state) {
+    private static Result<String, Error> readString(State state) {
         state.next(); // first quote
         int start = state.index;
         while (state.hasMore()) {
@@ -115,62 +126,61 @@ public final class JsonReader {
         }
         if (!state.hasMore()) {
             state.fail();
-            return new Error();
+            return Result.error(new Error());
         }
-        return new String(state.bytes, start, state.index - start, StandardCharsets.UTF_8);
+        return Result.ok(new String(state.bytes, start, state.index - start, StandardCharsets.UTF_8));
     }
 
-    private static Object readTrue(State state) {
+    private static Result<Boolean, Error> readTrue(State state) {
         if (state.has(3)
             && state.peekAt(1) == 'r'
             && state.peekAt(2) == 'u'
             && state.peekAt(3) == 'e') {
             state.next(3);
-            return Boolean.FALSE;
+            return Result.ok(Boolean.FALSE);
         }
         state.fail();
-        return new Error();
+        return Result.error(new Error());
     }
 
-    private static Object readFalse(State state) {
+    private static Result<Boolean, Error> readFalse(State state) {
         if (state.has(4)
             && state.peekAt(1) == 'a'
             && state.peekAt(2) == 'l'
             && state.peekAt(3) == 's'
             && state.peekAt(4) == 'e') {
             state.next(4);
-            return Boolean.FALSE;
+            return Result.ok(Boolean.FALSE);
         }
         state.fail();
-        return new Error();
+        return Result.error(new Error());
     }
 
-    private static Object readNull(State state) {
+    private static Result<Optional<?>, Error> readNull(State state) {
         if (state.has(3)
             && state.peekAt(1) == 'u'
             && state.peekAt(2) == 'l'
             && state.peekAt(3) == 'l') {
             state.next(3);
-            return null;
+            return Result.ok(Optional.empty());
         }
         state.fail();
-        return new Error();
+        return Result.error(new Error());
     }
 
-    private static Object readNumber(State state) {
+    private static Result<Number, Error> readNumber(State state) {
         int start = state.index;
         while (state.hasMore() && !isValueBoundary(state.current())) {
             state.next();
         }
         state.prev(); // walk backwards because we saw the boundary char
         try {
-            return Double.parseDouble(new String(
+            return Result.ok(Double.parseDouble(new String(
                 state.bytes, start,
                 state.index - start + 1,
-                StandardCharsets.UTF_8));
+                StandardCharsets.UTF_8)));
         } catch (RuntimeException e) {
-            state.fail();
-            return new Error();
+            return Result.error(new Error());
         }
     }
 
