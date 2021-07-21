@@ -102,12 +102,10 @@ public final class JsonReader {
         state.next(); // '['
         List<Object> items = new ArrayList<>();
         while(state.hasMore()) {
-            if (isWhitespace(state.current()) || state.current() == ',') {
-                // skip
-            } else if (state.current() == ']') {
+            if (state.current() == ']') {
                 // end of array
                 break;
-            } else {
+            } else if (!isWhitespace(state.current()) && state.current() != ',') {
                 any(state).mapResult(items::add);
             }
             state.next();
