@@ -1,5 +1,6 @@
 package barista.serde.bench;
 
+import barista.serde.runtime.json.JsonCharSeq;
 import barista.serde.runtime.json.JsonParsers;
 import barista.serde.runtime.parsec.ParseState;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -14,7 +15,6 @@ import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.jakewharton.nopen.annotation.Open;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -43,10 +43,21 @@ public class Deserialization {
     }
 
     private final String apacheBuilds = readResource("/apache_builds.json");
+    private final String twitter = readResource("/twitter.json");
 
     @Benchmark
     public Object barista_readGenericObject_apacheBuilds() {
         return JsonParsers.any().parse(ParseState.of(apacheBuilds)).unwrap();
+    }
+
+    @Benchmark
+    public Object barista_readMappedObj_apacheBuilds() {
+        return ApacheBuildsJsonSerDe.deserialize(new JsonCharSeq(apacheBuilds)).unwrap();
+    }
+
+    @Benchmark
+    public Object barista_readGenericObject_twitter() {
+        return JsonParsers.any().parse(ParseState.of(twitter)).unwrap();
     }
 
     private final ObjectMapper mapper =
@@ -60,7 +71,12 @@ public class Deserialization {
 
     @Benchmark
     public Object jackson_readGenericObject_apacheBuilds() throws JsonProcessingException {
-        return mapper.readValue(apacheBuilds, new TypeReference<Map<String, Object>>() {});
+        return mapper.readValue(apacheBuilds, new TypeReference<Object>() {});
+    }
+
+    @Benchmark
+    public Object jackson_readGenericObject_twitter() throws JsonProcessingException {
+        return mapper.readValue(twitter, new TypeReference<Object>() {});
     }
 
     public static void main(String[] args) throws RunnerException {

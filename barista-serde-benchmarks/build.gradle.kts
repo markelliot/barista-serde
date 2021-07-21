@@ -1,9 +1,17 @@
+import net.ltgt.gradle.errorprone.errorprone
+
 plugins {
     `java-library`
 }
 
+// disable final class requirements becuase of jmh generated code
+tasks.withType<JavaCompile> {
+    options.errorprone.disable("Nopen")
+}
+
 dependencies {
     implementation(project(":barista-serde-json"))
+    implementation(project(":barista-serde-annotations"))
 
     annotationProcessor(project(":barista-serde-processor"))
     // TODO(markelliot): figure out why the rest of these are necessary for intellij
@@ -23,6 +31,7 @@ dependencies {
     implementation("com.google.guava:guava")
 
     implementation("org.openjdk.jmh:jmh-core")
+    annotationProcessor("org.openjdk.jmh:jmh-generator-annprocess")
 
     testImplementation(platform("org.junit:junit-bom"))
     testImplementation("org.junit.jupiter:junit-jupiter-engine")
