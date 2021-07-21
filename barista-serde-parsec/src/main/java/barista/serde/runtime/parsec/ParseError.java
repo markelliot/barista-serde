@@ -1,13 +1,12 @@
 package barista.serde.runtime.parsec;
 
-public record ParseError(int markIndex, int index, CharSequence seq, String message) {
+public record ParseError(int markIndex, int index, char[] seq, String message) {
     public String errorString() {
         int markAdjustment = 0;
         // we need to "adjust" markIndex if it lands on a line break or the end of the stream
         // (where "adjustment" causes the error column to refer to one column past the actual
         // line length)
-        if ((markIndex < seq.length() && seq.charAt(markIndex) == '\n')
-                || markIndex == seq.length()) {
+        if ((markIndex < seq.length && seq[markIndex] == '\n') || markIndex == seq.length) {
             markAdjustment = 1;
         }
         int adjustedMarkIndex = Math.max(markIndex - markAdjustment, 0);
@@ -16,7 +15,7 @@ public record ParseError(int markIndex, int index, CharSequence seq, String mess
         int columnNumber = 1;
         int markStartLineCharIndex = 0;
         for (int i = 0; i < adjustedMarkIndex; i++) {
-            if (seq.charAt(i) == '\n') {
+            if (seq[i] == '\n') {
                 lineNumber++;
                 columnNumber = 1;
                 markStartLineCharIndex = i;
@@ -25,10 +24,10 @@ public record ParseError(int markIndex, int index, CharSequence seq, String mess
             }
         }
 
-        int markEndLineCharIndex = seq.length();
+        int markEndLineCharIndex = seq.length;
         int errorColumnNumber = columnNumber;
-        for (int i = adjustedMarkIndex; i < seq.length(); i++) {
-            if (seq.charAt(i) == '\n') {
+        for (int i = adjustedMarkIndex; i < seq.length; i++) {
+            if (seq[i] == '\n') {
                 markEndLineCharIndex = i;
                 break;
             }
@@ -37,7 +36,9 @@ public record ParseError(int markIndex, int index, CharSequence seq, String mess
             }
         }
 
-        String context = seq.subSequence(markStartLineCharIndex, markEndLineCharIndex).toString();
+        char[] dest = new char[markEndLineCharIndex - markStartLineCharIndex];
+        System.arraycopy(seq, markStartLineCharIndex, dest, 0, dest.length);
+        String context = new String(dest);
 
         return "Parse error at line "
                 + lineNumber

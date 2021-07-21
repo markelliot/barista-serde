@@ -22,33 +22,32 @@
 package barista.serde.runtime.parsec;
 
 public final class ParseState {
-
     /** End of stream sentinel value. */
     public static final int EOS = -1;
 
-    private final CharSequence seq;
+    private final char[] seq;
     private int index = 0;
 
-    public ParseState(CharSequence seq) {
+    public ParseState(char[] seq) {
         this.seq = seq;
     }
 
     public static ParseState of(CharSequence str) {
-        return new ParseState(str);
+        return new ParseState(str.toString().toCharArray());
     }
 
     /** Returns current character in the stream. */
     public int current() {
-        return index < seq.length() ? seq.charAt(index) : EOS;
+        return index < seq.length ? seq[index] : EOS;
     }
 
     public void skipWhitespace() {
-        for (; index < seq.length() && Character.isWhitespace(seq.charAt(index)); index++)
+        for (; index < seq.length && Character.isWhitespace(seq[index]); index++)
             ;
     }
 
     public boolean isEndOfStream() {
-        return index == seq.length();
+        return index == seq.length;
     }
 
     /**
@@ -58,13 +57,6 @@ public final class ParseState {
     public int next() {
         index += 1;
         return current();
-    }
-
-    public int last() {
-        if (index == 0) {
-            return EOS;
-        }
-        return seq.charAt(index - 1);
     }
 
     /** Returns a pointer to the current index. */
@@ -78,11 +70,15 @@ public final class ParseState {
     }
 
     public CharSequence slice(Mark from) {
-        return seq.subSequence(from.markIndex, index);
+        char[] dest = new char[index - from.markIndex];
+        System.arraycopy(seq, from.markIndex, dest, 0, dest.length);
+        return new String(dest);
     }
 
     public CharSequence slice(Mark from, int endOffset) {
-        return seq.subSequence(from.markIndex, index + endOffset);
+        char[] dest = new char[index + endOffset - from.markIndex];
+        System.arraycopy(seq, from.markIndex, dest, 0, dest.length);
+        return new String(dest);
     }
 
     public final class Mark {

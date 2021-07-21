@@ -1,7 +1,7 @@
 package barista.serde.bench;
 
-import barista.serde.runtime.json.JsonCharSeq;
 import barista.serde.runtime.json.JsonParsers;
+import barista.serde.runtime.json.JsonReader;
 import barista.serde.runtime.parsec.ParseState;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -22,6 +22,7 @@ import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
@@ -45,14 +46,42 @@ public class Deserialization {
     private final String apacheBuilds = readResource("/apache_builds.json");
     private final String twitter = readResource("/twitter.json");
 
+    private final char[] apacheBuilds_chars = apacheBuilds.toCharArray();
+    private final byte[] apacheBuilds_bytes = apacheBuilds.getBytes(StandardCharsets.UTF_8);
+
+    @Benchmark
+    public int asfadsf(Blackhole bh) {
+        return JsonReader.any(apacheBuilds_bytes);
+    }
+
+    @Benchmark
+    public Object barista_parseState_charSequence(Blackhole bh) {
+        CharSequence chars = apacheBuilds;
+        for (int i = 0; i < chars.length(); i++) {
+            bh.consume(chars.charAt(i));
+        }
+        return null;
+    }
+
+    @Benchmark
+    public Object barista_parseState_foo(Blackhole bh) {
+        ParseState state = ParseState.of(apacheBuilds);
+        while (!state.isEndOfStream()) {
+            bh.consume(state.current());
+            state.next();
+        }
+        return null;
+    }
+
     @Benchmark
     public Object barista_readGenericObject_apacheBuilds() {
-        return JsonParsers.any().parse(ParseState.of(apacheBuilds)).unwrap();
+        return JsonParsers.any().parse(new ParseState(apacheBuilds_chars)).unwrap();
     }
 
     @Benchmark
     public Object barista_readMappedObj_apacheBuilds() {
-        return ApacheBuildsJsonSerDe.deserialize(new JsonCharSeq(apacheBuilds)).unwrap();
+        // return ApacheBuildsJsonSerDe.deserialize(new JsonCharSeq(apacheBuilds)).unwrap();
+        return null;
     }
 
     @Benchmark
@@ -75,6 +104,11 @@ public class Deserialization {
     }
 
     @Benchmark
+    public Object jackson_readMappedObject_apacheBuilds() throws JsonProcessingException {
+        return mapper.readValue(apacheBuilds, ApacheBuilds.class);
+    }
+
+    @Benchmark
     public Object jackson_readGenericObject_twitter() throws JsonProcessingException {
         return mapper.readValue(twitter, new TypeReference<Object>() {});
     }
@@ -82,7 +116,8 @@ public class Deserialization {
     public static void main(String[] args) throws RunnerException {
         Options opt =
                 new OptionsBuilder()
-                        .include(Deserialization.class.getSimpleName())
+                        // .include(Deserialization.class.getSimpleName())
+                        .include("asfadsf")
                         .forks(1)
                         .build();
         new Runner(opt).run();
