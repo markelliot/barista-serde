@@ -81,6 +81,7 @@ public final class SerDeProcessor extends AbstractProcessor {
             try {
                 filerSourceFile.delete();
             } catch (Exception ignored) {
+                // Best-effort cleanup; the original exception is more important
             }
             throw e;
         }

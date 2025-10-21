@@ -42,7 +42,8 @@ public record JsonCharSeq(CharSequence value) implements CharSequence {
 
     @Override
     public boolean equals(Object obj) {
-        return (obj instanceof CharSequence other) && Objects.equals(value, other);
+        return (obj instanceof CharSequence other)
+                && Objects.equals(value.toString(), other.toString());
     }
 
     @Override

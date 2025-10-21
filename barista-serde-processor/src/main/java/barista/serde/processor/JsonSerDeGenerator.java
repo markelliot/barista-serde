@@ -291,7 +291,7 @@ public final class JsonSerDeGenerator {
         return cb.build();
     }
 
-    private static final Set<TypeName> SIMPLE_INTRINSICS =
+    private static final ImmutableSet<TypeName> SIMPLE_INTRINSICS =
             ImmutableSet.of(
                     ClassName.get(String.class), ClassName.get(OptionalInt.class),
                     ClassName.get(OptionalLong.class), ClassName.get(OptionalDouble.class));
