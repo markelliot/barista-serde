@@ -1,6 +1,6 @@
 package barista.serde.runtime.parsec;
 
-import io.github.markelliot.result.Result;
+import com.markelliot.result.Result;
 import java.util.function.Function;
 import java.util.function.Supplier;
 

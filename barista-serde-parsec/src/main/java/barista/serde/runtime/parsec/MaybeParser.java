@@ -1,6 +1,6 @@
 package barista.serde.runtime.parsec;
 
-import io.github.markelliot.result.Result;
+import com.markelliot.result.Result;
 
 final class MaybeParser<T> implements Parser<T> {
     private final Parser<T> parser;

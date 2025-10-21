@@ -3,15 +3,15 @@ import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
     idea
-    id("com.diffplug.spotless") version "5.12.5"
-    id("com.google.cloud.tools.jib") version "3.1.1" apply false
-    id("com.palantir.consistent-versions") version "1.30.0"
-    id("net.ltgt.errorprone") version "2.0.1" apply false
-    id("org.inferred.processors") version "3.3.0" apply false
+    id("com.diffplug.spotless") version "8.0.0"
+    id("com.google.cloud.tools.jib") version "3.4.5" apply false
+    id("com.palantir.consistent-versions") version "3.3.0"
+    id("net.ltgt.errorprone") version "4.1.0" apply false
+    id("org.inferred.processors") version "3.7.0" apply false
 }
 
 version = "git describe --tags".runCommand().trim() +
-        (if (!"git status -s".runCommand().isEmpty()) ".dirty" else "")
+    (if (!"git status -s".runCommand().isEmpty()) ".dirty" else "")
 
 task("printVersion") {
     doLast {
@@ -30,13 +30,6 @@ allprojects {
 
     // lives in allprojects because of consistent-versions
     repositories {
-        maven {
-            url = uri("https://maven.pkg.github.com/markelliot/result")
-            credentials {
-                username = System.getenv("GITHUB_ACTOR")
-                password = System.getenv("GITHUB_TOKEN")
-            }
-        }
         mavenCentral()
     }
 
@@ -69,7 +62,7 @@ allprojects {
 
         spotless {
             java {
-                googleJavaFormat("1.10.0").aosp()
+                googleJavaFormat("1.25.2").aosp()
             }
         }
 
@@ -90,12 +83,11 @@ allprojects {
     tasks.register("format").get().dependsOn("spotlessApply")
 }
 
-fun booleanEnv(envVar: String): Boolean? {
-    return System.getenv(envVar)?.toBoolean()
-}
+fun booleanEnv(envVar: String): Boolean? = System.getenv(envVar)?.toBoolean()
 
 fun String.runCommand(): String {
-    val proc = ProcessBuilder(*split(" ").toTypedArray())
+    val proc =
+        ProcessBuilder(*split(" ").toTypedArray())
             .redirectOutput(ProcessBuilder.Redirect.PIPE)
             .redirectError(ProcessBuilder.Redirect.INHERIT)
             .start()

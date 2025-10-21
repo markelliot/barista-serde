@@ -3,7 +3,7 @@ package barista.serde.runtime.json;
 import barista.serde.runtime.parsec.ParseError;
 import barista.serde.runtime.parsec.ParseState;
 import barista.serde.runtime.parsec.Parser;
-import io.github.markelliot.result.Result;
+import com.markelliot.result.Result;
 import java.util.Map;
 
 final class FloatParser implements Parser<Float> {

@@ -4,7 +4,7 @@ import barista.serde.runtime.parsec.Empty;
 import barista.serde.runtime.parsec.ParseError;
 import barista.serde.runtime.parsec.ParseState;
 import barista.serde.runtime.parsec.Parser;
-import io.github.markelliot.result.Result;
+import com.markelliot.result.Result;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;

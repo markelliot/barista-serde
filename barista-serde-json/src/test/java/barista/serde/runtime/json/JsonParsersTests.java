@@ -250,8 +250,9 @@ final class JsonParsersTests {
                                     case "a" -> JsonParsers.string();
                                     case "b" -> JsonParsers.integerParser();
                                     case "c" -> JsonParsers.doubleParser();
-                                    case "d" -> JsonParsers.collection(
-                                            JsonParsers.string(), ArrayList::new);
+                                    case "d" ->
+                                            JsonParsers.collection(
+                                                    JsonParsers.string(), ArrayList::new);
                                     default -> JsonParsers.any();
                                 },
                         map ->

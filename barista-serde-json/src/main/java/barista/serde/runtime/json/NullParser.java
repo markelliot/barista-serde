@@ -5,7 +5,7 @@ import barista.serde.runtime.parsec.ParseError;
 import barista.serde.runtime.parsec.ParseState;
 import barista.serde.runtime.parsec.Parser;
 import barista.serde.runtime.parsec.Parsers;
-import io.github.markelliot.result.Result;
+import com.markelliot.result.Result;
 
 final class NullParser implements Parser<Empty> {
     public static final Parser<Empty> INSTANCE = new NullParser();

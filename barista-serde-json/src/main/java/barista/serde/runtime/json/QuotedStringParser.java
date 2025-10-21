@@ -4,7 +4,7 @@ import barista.serde.runtime.parsec.ParseError;
 import barista.serde.runtime.parsec.ParseState;
 import barista.serde.runtime.parsec.ParseState.Mark;
 import barista.serde.runtime.parsec.Parser;
-import io.github.markelliot.result.Result;
+import com.markelliot.result.Result;
 
 final class QuotedStringParser implements Parser<String> {
     public static final Parser<String> INSTANCE = new QuotedStringParser();

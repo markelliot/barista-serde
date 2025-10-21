@@ -3,7 +3,7 @@ package barista.serde.runtime.json;
 import barista.serde.runtime.parsec.ParseError;
 import barista.serde.runtime.parsec.ParseState;
 import barista.serde.runtime.parsec.Parser;
-import io.github.markelliot.result.Result;
+import com.markelliot.result.Result;
 
 final class QuotedCharParser implements Parser<Character> {
     public static final Parser<Character> INSTANCE = new QuotedCharParser();

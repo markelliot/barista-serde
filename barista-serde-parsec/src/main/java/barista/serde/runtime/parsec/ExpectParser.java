@@ -1,6 +1,6 @@
 package barista.serde.runtime.parsec;
 
-import io.github.markelliot.result.Result;
+import com.markelliot.result.Result;
 
 final class ExpectParser implements Parser<Character> {
     private final char expectation;

@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     api(project(":barista-serde-parsec"))
-    api("io.github.markelliot.result:result")
+    api("com.markelliot.result:result")
 
     testImplementation("com.google.guava:guava")
     testImplementation(platform("org.junit:junit-bom"))
