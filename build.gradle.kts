@@ -39,7 +39,7 @@ allprojects {
         val imageName = "${project.name}:${project.version}"
         configure<JibExtension> {
             from {
-                image = "azul/zulu-openjdk:16"
+                image = "azul/zulu-openjdk:17"
             }
             to {
                 image = imageName
@@ -70,7 +70,7 @@ allprojects {
             options.errorprone.disable("UnusedVariable")
         }
 
-        the<JavaPluginExtension>().sourceCompatibility = JavaVersion.VERSION_16
+        the<JavaPluginExtension>().sourceCompatibility = JavaVersion.VERSION_17
     }
 
     spotless {

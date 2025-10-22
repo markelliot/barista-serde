@@ -60,14 +60,14 @@ net.bytebuddy:byte-buddy:1.17.7 (2 constraints: 741893b8)
 
 org.assertj:assertj-core:3.27.6 (2 constraints: 6412871e)
 
-org.junit:junit-bom:5.11.4 (5 constraints: 774940ba)
+org.junit:junit-bom:6.0.0 (5 constraints: 6e48d694)
 
-org.junit.jupiter:junit-jupiter-api:5.11.4 (2 constraints: 1c1a1c20)
+org.junit.jupiter:junit-jupiter-api:6.0.0 (2 constraints: b219f0f2)
 
-org.junit.jupiter:junit-jupiter-engine:5.11.4 (2 constraints: 7e0edf71)
+org.junit.jupiter:junit-jupiter-engine:6.0.0 (2 constraints: 140e5458)
 
-org.junit.platform:junit-platform-commons:1.11.4 (3 constraints: 722aa490)
+org.junit.platform:junit-platform-commons:6.0.0 (3 constraints: df292429)
 
-org.junit.platform:junit-platform-engine:1.11.4 (2 constraints: 141a2c1f)
+org.junit.platform:junit-platform-engine:6.0.0 (2 constraints: b219f0f2)
 
 org.opentest4j:opentest4j:1.3.0 (2 constraints: cf209249)
