@@ -38,7 +38,7 @@ com.google.j2objc:j2objc-annotations:3.1 (1 constraints: b809f1a0)
 
 com.jakewharton.nopen:nopen-annotations:1.0.1 (2 constraints: e41152fd)
 
-com.markelliot.result:result:0.131.0 (1 constraints: 67059740)
+com.markelliot.result:result:0.133.0 (1 constraints: 69059d40)
 
 com.squareup:javapoet:1.13.0 (1 constraints: 3705323b)
 
@@ -56,9 +56,9 @@ org.yaml:snakeyaml:2.5 (1 constraints: 3f178e10)
 
 [Test dependencies]
 
-net.bytebuddy:byte-buddy:1.18.3 (2 constraints: 711892b8)
+net.bytebuddy:byte-buddy:1.18.3 (2 constraints: 6e182bb8)
 
-org.assertj:assertj-core:3.27.7 (2 constraints: 6512ae1e)
+org.assertj:assertj-core:3.27.7 (2 constraints: 6612af1e)
 
 org.junit:junit-bom:6.0.3 (6 constraints: c55a8f0e)
 
