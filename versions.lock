@@ -38,7 +38,7 @@ com.google.j2objc:j2objc-annotations:3.1 (1 constraints: b809f1a0)
 
 com.jakewharton.nopen:nopen-annotations:1.0.1 (2 constraints: e41152fd)
 
-com.markelliot.result:result:0.137.0 (1 constraints: 6d05a940)
+com.markelliot.result:result:0.138.0 (1 constraints: 6e05ac40)
 
 com.squareup:javapoet:1.13.0 (1 constraints: 3705323b)
 
