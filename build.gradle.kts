@@ -68,9 +68,8 @@ allprojects {
 
         tasks.withType<JavaCompile> {
             options.errorprone.disable("UnusedVariable")
+            options.release = 17
         }
-
-        the<JavaPluginExtension>().sourceCompatibility = JavaVersion.VERSION_17
     }
 
     spotless {
