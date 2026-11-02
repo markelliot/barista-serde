@@ -70,6 +70,12 @@ allprojects {
             options.errorprone.disable("UnusedVariable")
             options.release = 17
         }
+
+        java {
+            toolchain {
+                languageVersion = JavaLanguageVersion.of(21)
+            }
+        }
     }
 
     spotless {
